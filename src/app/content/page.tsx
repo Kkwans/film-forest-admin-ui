@@ -322,15 +322,15 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button className="p-1.5 rounded hover:bg-zinc-700 text-muted-foreground hover:text-foreground transition-colors" title="预览">
+                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="预览">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-zinc-700 text-muted-foreground hover:text-foreground transition-colors" title="编辑">
+                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="编辑">
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(item.id, item.type)}
-                            className="p-1.5 rounded hover:bg-zinc-700 text-muted-foreground hover:text-red-400 transition-colors"
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-red-400 transition-colors"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />

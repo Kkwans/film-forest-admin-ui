@@ -114,7 +114,7 @@ export default function StatsPage() {
                   <div key={stat.label}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-muted-foreground">{stat.label}</span>
-                      <span className="text-zinc-300">{pct}%</span>
+                      <span className="text-foreground">{pct}%</span>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div

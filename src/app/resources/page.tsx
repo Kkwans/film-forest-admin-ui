@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink } from 'lucide-react';
+import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, X, Save, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { resourceApi } from '@/lib/api';
 
 interface ResourceStats {
@@ -26,11 +26,32 @@ interface MagnetResource {
   createdAt: string;
 }
 
-const SOURCE_SITES = [
-  { name: '七味网', url: 'https://www.qwsect.com', status: 'active' as const },
-  { name: '天堂资源', url: '#', status: 'inactive' as const },
-  { name: '非凡资源', url: '#', status: 'inactive' as const },
+interface SourceSite {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+}
+
+const DEFAULT_SOURCES: SourceSite[] = [
+  { id: 'pkmp4', name: '七味网', url: 'https://pkmp4.xyz', enabled: true },
+  { id: 'ttzy', name: '天堂资源', url: '#', enabled: false },
+  { id: 'ffzy', name: '非凡资源', url: '#', enabled: false },
 ];
+
+const STORAGE_KEY = 'ff_source_sites';
+
+function loadSources(): SourceSite[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return DEFAULT_SOURCES;
+}
+
+function saveSources(sources: SourceSite[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sources));
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN', {
@@ -42,6 +63,9 @@ export default function ResourcesPage() {
   const [stats, setStats] = useState<ResourceStats>({ online: 0, magnet: 0, todayNew: 0 });
   const [magnets, setMagnets] = useState<MagnetResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sources, setSources] = useState<SourceSite[]>(DEFAULT_SOURCES);
+  const [editingSource, setEditingSource] = useState<SourceSite | null>(null);
+  const [showSourceForm, setShowSourceForm] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -61,7 +85,43 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     fetchData();
+    setSources(loadSources());
   }, []);
+
+  const handleToggleSource = (id: string) => {
+    const updated = sources.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
+    setSources(updated);
+    saveSources(updated);
+  };
+
+  const handleEditSource = (source: SourceSite) => {
+    setEditingSource({ ...source });
+    setShowSourceForm(true);
+  };
+
+  const handleSaveSource = () => {
+    if (!editingSource || !editingSource.name.trim()) return;
+    const exists = sources.some(s => s.id === editingSource.id);
+    const updated = exists
+      ? sources.map(s => s.id === editingSource.id ? editingSource : s)
+      : [...sources, editingSource];
+    setSources(updated);
+    saveSources(updated);
+    setShowSourceForm(false);
+    setEditingSource(null);
+  };
+
+  const handleDeleteSource = (id: string) => {
+    if (!confirm('确定删除此来源？')) return;
+    const updated = sources.filter(s => s.id !== id);
+    setSources(updated);
+    saveSources(updated);
+  };
+
+  const handleAddSource = () => {
+    setEditingSource({ id: `src_${Date.now()}`, name: '', url: '', enabled: true });
+    setShowSourceForm(true);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,6 +158,37 @@ export default function ResourcesPage() {
         ))}
       </div>
 
+      {/* Source Edit Modal */}
+      {showSourceForm && editingSource && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSourceForm(false)}>
+          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">{sources.some(s => s.id === editingSource.id) ? '编辑来源' : '新增来源'}</h2>
+              <button onClick={() => setShowSourceForm(false)} className="p-1 rounded hover:bg-muted"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">来源名称</label>
+                <input value={editingSource.name} onChange={e => setEditingSource({...editingSource, name: e.target.value})} placeholder="如：七味网" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">链接地址</label>
+                <input value={editingSource.url} onChange={e => setEditingSource({...editingSource, url: e.target.value})} placeholder="https://..." className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">启用状态</label>
+                <button type="button" onClick={() => setEditingSource({...editingSource, enabled: !editingSource.enabled})} className={`w-10 h-5 rounded-full relative transition-colors ${editingSource.enabled ? 'bg-emerald-600' : 'bg-muted'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editingSource.enabled ? 'right-0.5' : 'left-0.5'}`} />
+                </button>
+              </div>
+              <button onClick={handleSaveSource} disabled={!editingSource.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50 transition-colors">
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Magnet Resource List */}
       <Card className="bg-card border-border">
         <CardHeader>
@@ -115,101 +206,89 @@ export default function ResourcesPage() {
               <p>暂无磁力资源记录 — 爬虫抓取后自动更新</p>
             </div>
           ) : (
-            <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
-            <div className="min-w-[600px]">
-            <div className="hidden md:block grid grid-cols-12 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
-                <div className="col-span-1">类型</div>
-                <div className="col-span-2">标题</div>
-                <div className="col-span-2">分辨率</div>
-                <div className="col-span-2">字幕</div>
-                <div className="col-span-4">磁力链接</div>
-                <div className="col-span-1">时间</div>
+            <div className="overflow-x-auto">
+              <div className="min-w-[600px]">
+                {/* Desktop header */}
+                <div className="hidden md:grid grid-cols-12 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                  <div className="col-span-1">类型</div>
+                  <div className="col-span-2">标题</div>
+                  <div className="col-span-2">分辨率</div>
+                  <div className="col-span-2">字幕</div>
+                  <div className="col-span-4">磁力链接</div>
+                  <div className="col-span-1">时间</div>
+                </div>
+                {magnets.map((m) => (
+                  <div key={m.id}>
+                    {/* Desktop row */}
+                    <div className="hidden md:grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                      <div className="col-span-1">
+                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{m.contentType}</Badge>
+                      </div>
+                      <div className="col-span-2 text-foreground truncate" title={m.title}>{m.title}</div>
+                      <div className="col-span-2">
+                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-blue-500 text-blue-400' : m.resolution === '4K' ? 'border-purple-500 text-purple-400' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
+                      </div>
+                      <div className="col-span-2 text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</div>
+                      <div className="col-span-4 text-muted-foreground text-xs truncate" title={m.magnetUrl}>{m.magnetUrl ? m.magnetUrl.slice(0, 60) + '...' : '-'}</div>
+                      <div className="col-span-1 text-muted-foreground text-xs">{formatDate(m.createdAt)}</div>
+                    </div>
+                    {/* Mobile card */}
+                    <div className="md:hidden flex flex-col gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm mb-2">
+                      <div className="flex items-center gap-2 justify-between">
+                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{m.contentType}</Badge>
+                        <span className="text-muted-foreground text-xs">{formatDate(m.createdAt)}</span>
+                      </div>
+                      <p className="text-foreground text-sm font-medium truncate">{m.title}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-blue-500 text-blue-400' : m.resolution === '4K' ? 'border-purple-500 text-purple-400' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
+                        <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</span>
+                      </div>
+                      <p className="text-muted-foreground text-xs truncate">{m.magnetUrl ? m.magnetUrl.slice(0, 80) + '...' : '-'}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              {magnets.map((m) => (
-                <>
-                  {/* Desktop row */}
-                  <div key={`d-${m.id}`} className="hidden md:flex grid-cols-12 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
-                    <div className="col-span-1">
-                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                        {m.contentType}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2 text-foreground truncate" title={m.title}>{m.title}</div>
-                    <div className="col-span-2">
-                      <Badge variant="outline" className={`text-xs ${
-                        m.resolution === '1080P' ? 'border-blue-500 text-blue-400' :
-                        m.resolution === '4K' ? 'border-purple-500 text-purple-400' :
-                        'border-border text-muted-foreground'
-                      }`}>
-                        {m.resolution}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2 text-muted-foreground text-xs">
-                      {m.hasSubtitle ? '✅ 有字幕' : '—'}
-                    </div>
-                    <div className="col-span-4 text-muted-foreground text-xs truncate" title={m.magnetUrl}>
-                      {m.magnetUrl ? m.magnetUrl.slice(0, 60) + '...' : '-'}
-                    </div>
-                    <div className="col-span-1 text-muted-foreground text-xs">
-                      {formatDate(m.createdAt)}
-                    </div>
-                  </div>
-                  {/* Mobile card */}
-                  <div key={`m-${m.id}`} className="md:hidden flex flex-col gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm mb-2">
-                    <div className="flex items-center gap-2 justify-between">
-                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                        {m.contentType}
-                      </Badge>
-                      <span className="text-muted-foreground text-xs">{formatDate(m.createdAt)}</span>
-                    </div>
-                    <p className="text-foreground text-sm font-medium truncate">{m.title}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className={`text-xs ${
-                        m.resolution === '1080P' ? 'border-blue-500 text-blue-400' :
-                        m.resolution === '4K' ? 'border-purple-500 text-purple-400' :
-                        'border-border text-muted-foreground'
-                      }`}>
-                        {m.resolution}
-                      </Badge>
-                      <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</span>
-                    </div>
-                    <p className="text-muted-foreground text-xs truncate">{m.magnetUrl ? m.magnetUrl.slice(0, 80) + '...' : '-'}</p>
-                  </div>
-                </>
-              ))}
-            </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Resource Sources */}
+      {/* Resource Sources - Editable */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Link2 className="w-5 h-5" /> 资源来源
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Link2 className="w-5 h-5" /> 资源来源
+            </CardTitle>
+            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+              <Plus className="w-3 h-3" /> 新增来源
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {SOURCE_SITES.map((source) => (
-              <div key={source.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+            {sources.map((source) => (
+              <div key={source.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${source.status === 'active' ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                  <span className={`w-2 h-2 rounded-full ${source.enabled ? 'bg-emerald-400' : 'bg-zinc-400 dark:bg-zinc-600'}`} />
                   <span className="text-foreground font-medium">{source.name}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  {source.url !== '#' && (
+                <div className="flex items-center gap-2">
+                  {source.url && source.url !== '#' && (
                     <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
-                      {source.url}
+                      <span className="hidden sm:inline">{source.url}</span>
                     </a>
                   )}
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    source.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-700/50 text-muted-foreground'
-                  }`}>
-                    {source.status === 'active' ? '已启用' : '未启用'}
-                  </span>
+                  <button onClick={() => handleToggleSource(source.id)} className="p-1 rounded hover:bg-muted" title={source.enabled ? '点击禁用' : '点击启用'}>
+                    {source.enabled ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                  </button>
+                  <button onClick={() => handleEditSource(source)} className="p-1 rounded hover:bg-muted text-muted-foreground" title="编辑">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDeleteSource(source.id)} className="p-1 rounded hover:bg-red-500/20 text-red-500" title="删除">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

@@ -21,7 +21,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var root=document.documentElement;function apply(t){if(t==='dark'){root.classList.add('dark')}else if(t==='light'){root.classList.remove('dark')}else{var mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.matches){root.classList.add('dark')}else{root.classList.remove('dark')}mq.addEventListener('change',function(e){var cur=localStorage.getItem('theme');if(cur==='system'){if(e.matches){root.classList.add('dark')}else{root.classList.remove('dark')}}})}}var t=localStorage.getItem('theme');apply(t||'dark');window.__applyTheme=apply})()`,
+            __html: `(function(){var root=document.documentElement;var mq=window.matchMedia('(prefers-color-scheme: dark)');function isDark(){return mq.matches}function applyClass(dark){if(dark){root.classList.add('dark')}else{root.classList.remove('dark')}}function apply(t){if(t==='dark'){applyClass(true)}else if(t==='light'){applyClass(false)}else{applyClass(isDark())}}mq.addEventListener('change',function(){if(localStorage.getItem('theme')==='system'){applyClass(isDark())}});var t=localStorage.getItem('theme');apply(t||'dark');window.__applyTheme=apply})()`,
           }}
         />
       </head>
