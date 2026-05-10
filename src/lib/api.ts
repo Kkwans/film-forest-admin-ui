@@ -91,6 +91,12 @@ export const resourceApi = {
   // 磁力资源列表
   listMagnet: (contentType?: string, contentId?: number) =>
     adminClient.get('/api/admin/resources/magnet', { params: { contentType, contentId } }),
+  // 网盘资源列表
+  listCloud: (contentType?: string, contentId?: number) =>
+    adminClient.get('/api/admin/resources/cloud', { params: { contentType, contentId } }),
+  // 网盘资源 CRUD
+  saveCloud: (data: any) => adminClient.post('/api/admin/resources/cloud', data),
+  deleteCloud: (id: number) => adminClient.delete(`/api/admin/resources/cloud/${id}`),
 };
 
 // 内容管理 API（管理端）

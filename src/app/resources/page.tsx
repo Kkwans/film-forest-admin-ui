@@ -9,7 +9,21 @@ import { resourceApi } from '@/lib/api';
 interface ResourceStats {
   online: number;
   magnet: number;
+  cloud: number;
   todayNew: number;
+}
+
+interface CloudResource {
+  id: number;
+  contentType: string;
+  contentId: number;
+  episodeId: number | null;
+  diskType: string;
+  title: string;
+  url: string;
+  password: string;
+  sort: number;
+  createdAt: string;
 }
 
 interface MagnetResource {
@@ -59,9 +73,20 @@ function formatDate(iso: string): string {
   });
 }
 
+const DISK_TYPE_LABELS: Record<string, string> = {
+  baidu: '百度网盘',
+  quark: '夸克网盘',
+  thunder: '迅雷网盘',
+  uc: 'UC网盘',
+  ali: '阿里网盘',
+  '123': '123网盘',
+  ed2k: '电驴',
+};
+
 export default function ResourcesPage() {
-  const [stats, setStats] = useState<ResourceStats>({ online: 0, magnet: 0, todayNew: 0 });
+  const [stats, setStats] = useState<ResourceStats>({ online: 0, magnet: 0, cloud: 0, todayNew: 0 });
   const [magnets, setMagnets] = useState<MagnetResource[]>([]);
+  const [clouds, setClouds] = useState<CloudResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [sources, setSources] = useState<SourceSite[]>(DEFAULT_SOURCES);
   const [editingSource, setEditingSource] = useState<SourceSite | null>(null);
@@ -70,12 +95,14 @@ export default function ResourcesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, magnetRes] = await Promise.all([
+      const [statsRes, magnetRes, cloudRes] = await Promise.all([
         resourceApi.getStats() as Promise<any>,
         resourceApi.listMagnet() as Promise<any>,
+        resourceApi.listCloud() as Promise<any>,
       ]);
-      setStats(statsRes.data?.data || { online: 0, magnet: 0, todayNew: 0 });
+      setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setMagnets((magnetRes.data?.data || []).slice(0, 50));
+      setClouds((cloudRes.data?.data || []).slice(0, 50));
     } catch (e) {
       console.error('fetch resource data error', e);
     } finally {
@@ -141,8 +168,8 @@ export default function ResourcesPage() {
         {[
           { label: '在线资源', value: stats.online, icon: HardDrive, color: 'text-blue-400' },
           { label: '磁力资源', value: stats.magnet, icon: Link2, color: 'text-emerald-400' },
+          { label: '网盘资源', value: stats.cloud, icon: Database, color: 'text-purple-400' },
           { label: '今日新增', value: stats.todayNew, icon: Server, color: 'text-amber-400' },
-          { label: '总存储', value: `${Math.round(stats.online + stats.magnet)} 条`, icon: Database, color: 'text-purple-400' },
         ].map((stat) => (
           <Card key={stat.label} className="bg-card border-border">
             <CardContent className="p-5">
@@ -244,6 +271,69 @@ export default function ResourcesPage() {
                         <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">{m.magnetUrl ? m.magnetUrl.slice(0, 80) + '...' : '-'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Cloud Resource List */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground flex items-center gap-2">
+            <Database className="w-5 h-5" /> 网盘资源列表
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="h-48 flex items-center justify-center text-muted-foreground">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
+            </div>
+          ) : clouds.length === 0 ? (
+            <div className="h-48 flex items-center justify-center text-muted-foreground">
+              <p>暂无网盘资源记录 — 爬虫抓取后自动更新</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[600px]">
+                <div className="hidden md:grid grid-cols-12 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                  <div className="col-span-1">类型</div>
+                  <div className="col-span-2">标题</div>
+                  <div className="col-span-2">网盘</div>
+                  <div className="col-span-5">链接</div>
+                  <div className="col-span-1">密码</div>
+                  <div className="col-span-1">时间</div>
+                </div>
+                {clouds.map((c) => (
+                  <div key={c.id}>
+                    <div className="hidden md:grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                      <div className="col-span-1">
+                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{c.contentType}</Badge>
+                      </div>
+                      <div className="col-span-2 text-foreground truncate" title={c.title}>{c.title}</div>
+                      <div className="col-span-2">
+                        <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
+                      </div>
+                      <div className="col-span-5 text-muted-foreground text-xs truncate">
+                        {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">{c.url.slice(0, 50)}...</a> : '-'}
+                      </div>
+                      <div className="col-span-1 text-muted-foreground text-xs">{c.password || '-'}</div>
+                      <div className="col-span-1 text-muted-foreground text-xs">{formatDate(c.createdAt)}</div>
+                    </div>
+                    <div className="md:hidden flex flex-col gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm mb-2">
+                      <div className="flex items-center gap-2 justify-between">
+                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{c.contentType}</Badge>
+                        <span className="text-muted-foreground text-xs">{formatDate(c.createdAt)}</span>
+                      </div>
+                      <p className="text-foreground text-sm font-medium truncate">{c.title}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
+                        {c.password && <span className="text-muted-foreground text-xs">密码: {c.password}</span>}
+                      </div>
+                      <p className="text-muted-foreground text-xs truncate">{c.url ? c.url.slice(0, 80) + '...' : '-'}</p>
                     </div>
                   </div>
                 ))}
