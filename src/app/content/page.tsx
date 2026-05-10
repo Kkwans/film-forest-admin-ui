@@ -142,6 +142,53 @@ export default function ContentPage() {
     }
   };
 
+  const handlePreview = (item: ContentRecord) => {
+    // 在新窗口打开七味网详情页
+    window.open(`https://www.pkmp4.xyz/mv/${item.id}.html`, '_blank');
+  };
+
+  const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', status: 1 });
+
+  const handleEditClick = (item: ContentRecord) => {
+    setEditingItem(item);
+    setEditForm({
+      title: item.title || '',
+      year: String(item.year || ''),
+      scoreDouban: String(item.scoreDouban || ''),
+      status: item.status,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    const data = {
+      ...editingItem,
+      title: editForm.title,
+      year: editForm.year ? Number(editForm.year) : null,
+      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
+      status: editForm.status,
+    };
+    try {
+      let res;
+      switch (editingItem.type) {
+        case 'movie': res = await contentApi.updateMovie(editingItem.id, data); break;
+        case 'drama': res = await contentApi.updateDrama(editingItem.id, data); break;
+        case 'variety': res = await contentApi.updateVariety(editingItem.id, data); break;
+        case 'anime': res = await contentApi.updateAnime(editingItem.id, data); break;
+        case 'short_drama': res = await contentApi.updateShortDrama(editingItem.id, data); break;
+      }
+      if (res?.data?.code === 200 || res?.data?.code === 0) {
+        setItems(items.map(i => i.id === editingItem.id && i.type === editingItem.type ? { ...i, ...data } : i));
+        setEditingItem(null);
+      } else {
+        alert('保存失败');
+      }
+    } catch {
+      alert('保存失败');
+    }
+  };
+
   const handleToggleStatus = async (item: ContentRecord) => {
     const newStatus = item.status === 1 ? 0 : 1;
     try {
@@ -322,10 +369,10 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="预览">
+                          <button onClick={() => handlePreview(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="预览">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="编辑">
+                          <button onClick={() => handleEditClick(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="编辑">
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
@@ -345,6 +392,65 @@ export default function ContentPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEditingItem(null)}>
+          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">编辑内容</h2>
+              <button onClick={() => setEditingItem(null)} className="p-1 rounded hover:bg-muted">
+                <span className="text-xl">&times;</span>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">标题</label>
+                <input
+                  value={editForm.title}
+                  onChange={e => setEditForm({...editForm, title: e.target.value})}
+                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">年份</label>
+                  <input
+                    value={editForm.year}
+                    onChange={e => setEditForm({...editForm, year: e.target.value})}
+                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">豆瓣评分</label>
+                  <input
+                    value={editForm.scoreDouban}
+                    onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})}
+                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground">状态</label>
+                <button
+                  type="button"
+                  onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
+                </button>
+                <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
+              </div>
+              <button
+                onClick={handleSaveEdit}
+                className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
