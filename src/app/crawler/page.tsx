@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { crawlerApi, type CrawlerSchedule } from '@/lib/api';
-import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw } from 'lucide-react';
+import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 
 function formatTime(iso: string | null): string {
   if (!iso) return '-';
@@ -51,6 +51,21 @@ interface ScheduleForm {
   enabled: number;
 }
 
+interface CrawlerTaskLog {
+  id: number;
+  scheduleId: number;
+  scheduleName: string;
+  contentType: string;
+  status: string;
+  itemsCrawled: number;
+  itemsAdded: number;
+  itemsUpdated: number;
+  errorMessage: string | null;
+  durationMs: number;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 const EMPTY_FORM: ScheduleForm = {
   name: '',
   contentType: 'movie',
@@ -72,6 +87,9 @@ export default function CrawlerPage() {
   const [form, setForm] = useState<ScheduleForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [logs, setLogs] = useState<CrawlerTaskLog[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -87,6 +105,18 @@ export default function CrawlerPage() {
       console.error('fetch schedules error', e);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLogsLoading(true);
+      const res = await crawlerApi.getLogs() as any;
+      setLogs(res.data?.data || []);
+    } catch (e) {
+      console.error('fetch logs error', e);
+    } finally {
+      setLogsLoading(false);
     }
   }, []);
 
@@ -302,6 +332,82 @@ export default function CrawlerPage() {
             })}
           </tbody>
         </table>
+      </div>
+      {/* Task Logs Section */}
+      <div className="rounded-lg border bg-card">
+        <button
+          onClick={() => { setShowLogs(!showLogs); if (!showLogs && logs.length === 0) fetchLogs(); }}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-muted-foreground" />
+            <span className="font-medium text-foreground">任务日志</span>
+            <span className="text-xs text-muted-foreground">({logs.length} 条)</span>
+          </div>
+          {showLogs ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {showLogs && (
+          <div className="border-t">
+            {logsLoading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <RefreshCw className="w-5 h-5 animate-spin mr-2 inline" /> 加载中...
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">暂无任务日志</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30">
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium text-muted-foreground">任务</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">类型</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">状态</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">抓取</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">新增</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">更新</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">耗时</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">开始时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logs.map((log) => (
+                      <tr key={log.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                        <td className="p-3 text-foreground font-medium">{log.scheduleName || '-'}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{TYPE_MAP[log.contentType] || log.contentType}</td>
+                        <td className="p-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            log.status === 'success' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+                            log.status === 'failed' ? 'bg-red-500/20 text-red-500' :
+                            log.status === 'running' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                            'bg-muted text-muted-foreground'
+                          }`}>
+                            {log.status === 'success' ? '✅ 成功' : log.status === 'failed' ? '❌ 失败' : log.status === 'running' ? '🔄 运行中' : log.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-muted-foreground hidden md:table-cell">{log.itemsCrawled || 0}</td>
+                        <td className="p-3 text-emerald-500 hidden md:table-cell">+{log.itemsAdded || 0}</td>
+                        <td className="p-3 text-amber-500 hidden lg:table-cell">{log.itemsUpdated || 0}</td>
+                        <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{log.durationMs ? `${(log.durationMs / 1000).toFixed(1)}s` : '-'}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{formatTime(log.startedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {logs.some(l => l.errorMessage) && (
+              <div className="p-4 border-t">
+                <p className="text-sm font-medium text-foreground mb-2">错误详情</p>
+                {logs.filter(l => l.errorMessage).map((log) => (
+                  <div key={log.id} className="mb-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">{log.scheduleName} — {formatTime(log.startedAt)}</p>
+                    <p className="text-sm text-red-400">{log.errorMessage}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
