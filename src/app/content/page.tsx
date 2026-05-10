@@ -148,7 +148,41 @@ export default function ContentPage() {
   };
 
   const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', status: 1 });
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', status: 1, type: 'movie' as ContentRecord['type'] });
+
+  const handleCreateNew = () => {
+    setCreatingNew(true);
+    setEditForm({ title: '', year: '', scoreDouban: '', status: 1, type: 'movie' });
+  };
+
+  const handleSaveNew = async () => {
+    if (!editForm.title.trim()) { alert('请输入标题'); return; }
+    const data = {
+      title: editForm.title,
+      year: editForm.year ? Number(editForm.year) : null,
+      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
+      status: editForm.status,
+    };
+    try {
+      let res;
+      switch (editForm.type) {
+        case 'movie': res = await contentApi.createMovie(data); break;
+        case 'drama': res = await contentApi.createDrama(data); break;
+        case 'variety': res = await contentApi.createVariety(data); break;
+        case 'anime': res = await contentApi.createAnime(data); break;
+        case 'short_drama': res = await contentApi.createShortDrama(data); break;
+      }
+      if (res?.data?.code === 200 || res?.data?.code === 0) {
+        setCreatingNew(false);
+        fetchItems();
+      } else {
+        alert('创建失败');
+      }
+    } catch {
+      alert('创建失败');
+    }
+  };
 
   const handleEditClick = (item: ContentRecord) => {
     setEditingItem(item);
@@ -219,18 +253,19 @@ export default function ContentPage() {
           <h1 className="text-2xl font-bold text-foreground">内容管理</h1>
           <p className="text-sm text-muted-foreground mt-1">管理影视资源内容，审核状态</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-500">
+        <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handleCreateNew}>
           <Plus className="w-4 h-4 mr-2" /> 新增内容
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: '电影', key: 'movie', color: 'text-blue-400' },
           { label: '剧集', key: 'drama', color: 'text-purple-400' },
           { label: '综艺', key: 'variety', color: 'text-amber-400' },
-          { label: '动漫/短剧', key: 'anime', color: 'text-red-400' },
+          { label: '动漫', key: 'anime', color: 'text-red-400' },
+          { label: '短剧', key: 'short_drama', color: 'text-emerald-400' },
         ].map((stat) => (
           <Card key={stat.key} className="bg-card border-border">
             <CardContent className="p-4 flex items-center justify-between">
@@ -392,6 +427,71 @@ export default function ContentPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Modal */}
+      {creatingNew && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCreatingNew(false)}>
+          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">新增内容</h2>
+              <button onClick={() => setCreatingNew(false)} className="p-1 rounded hover:bg-muted">
+                <span className="text-xl">&times;</span>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">内容类型</label>
+                <select
+                  value={editForm.type}
+                  onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})}
+                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                >
+                  <option value="movie">电影</option>
+                  <option value="drama">剧集</option>
+                  <option value="variety">综艺</option>
+                  <option value="anime">动漫</option>
+                  <option value="short_drama">短剧</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">标题</label>
+                <input
+                  value={editForm.title}
+                  onChange={e => setEditForm({...editForm, title: e.target.value})}
+                  placeholder="输入内容标题"
+                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">年份</label>
+                  <input
+                    value={editForm.year}
+                    onChange={e => setEditForm({...editForm, year: e.target.value})}
+                    placeholder="2026"
+                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">豆瓣评分</label>
+                  <input
+                    value={editForm.scoreDouban}
+                    onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})}
+                    placeholder="8.5"
+                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleSaveNew}
+                className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+              >
+                创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editingItem && (
