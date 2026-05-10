@@ -97,6 +97,13 @@ export const resourceApi = {
   // 网盘资源 CRUD
   saveCloud: (data: any) => adminClient.post('/api/admin/resources/cloud', data),
   deleteCloud: (id: number) => adminClient.delete(`/api/admin/resources/cloud/${id}`),
+
+  // 资源来源 CRUD
+  listSources: () => adminClient.get('/api/admin/resources/sources'),
+  saveSource: (data: any) => adminClient.post('/api/admin/resources/sources', data),
+  deleteSource: (id: number) => adminClient.delete(`/api/admin/resources/sources/${id}`),
+  toggleSource: (id: number, enabled: boolean) =>
+    adminClient.post(`/api/admin/resources/sources/${id}/toggle?enabled=${enabled}`),
 };
 
 // 内容管理 API（管理端）
@@ -147,6 +154,17 @@ export const contentApi = {
 
   // 统计
   getStats: () => adminClient.get('/api/content/stats'),
+};
+
+// 系统设置 API
+export const settingsApi = {
+  /** 获取所有设置 */
+  getSettings: () => adminClient.get('/api/settings'),
+  /** 批量保存设置 */
+  saveSettings: (data: Record<string, string>) => adminClient.put('/api/settings', data),
+  /** 获取单个设置 */
+  getSetting: (key: string, defaultValue?: string) =>
+    adminClient.get(`/api/settings/${key}`, { params: { defaultValue } }),
 };
 
 export default client;

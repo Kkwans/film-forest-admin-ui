@@ -5,15 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Database, Bell, Shield } from 'lucide-react';
-
-const STORAGE_KEYS = {
-  siteName: 'ff_site_name',
-  siteDesc: 'ff_site_desc',
-  copyright: 'ff_copyright',
-  notifyOnComplete: 'ff_notify_complete',
-  notifyOnError: 'ff_notify_error',
-};
+import { Settings, Database, Bell, Shield, Loader2 } from 'lucide-react';
+import { settingsApi } from '@/lib/api';
 
 export default function SettingsPage() {
   const [siteName, setSiteName] = useState('影视森林');
@@ -23,24 +16,52 @@ export default function SettingsPage() {
   const [notifyOnError, setNotifyOnError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // 从后端加载设置
   useEffect(() => {
-    setSiteName(localStorage.getItem(STORAGE_KEYS.siteName) || '影视森林');
-    setSiteDesc(localStorage.getItem(STORAGE_KEYS.siteDesc) || '影视资源聚合平台');
-    setCopyright(localStorage.getItem(STORAGE_KEYS.copyright) || '© 2026 影视森林. 仅供学习交流.');
-    setNotifyOnComplete(localStorage.getItem(STORAGE_KEYS.notifyOnComplete) !== 'false');
-    setNotifyOnError(localStorage.getItem(STORAGE_KEYS.notifyOnError) === 'true');
+    settingsApi.getSettings().then(res => {
+      if (res.data?.code === 200 && res.data.data) {
+        const d = res.data.data;
+        setSiteName(d.site_name || '影视森林');
+        setSiteDesc(d.site_desc || '影视资源聚合平台');
+        setCopyright(d.copyright || '© 2026 影视森林. 仅供学习交流.');
+        setNotifyOnComplete(d.notify_on_complete !== 'false');
+        setNotifyOnError(d.notify_on_error === 'true');
+      }
+    }).catch(e => {
+      console.error('加载设置失败', e);
+    }).finally(() => setLoading(false));
   }, []);
 
-  const handleSaveAll = () => {
-    localStorage.setItem(STORAGE_KEYS.siteName, siteName);
-    localStorage.setItem(STORAGE_KEYS.siteDesc, siteDesc);
-    localStorage.setItem(STORAGE_KEYS.copyright, copyright);
-    localStorage.setItem(STORAGE_KEYS.notifyOnComplete, String(notifyOnComplete));
-    localStorage.setItem(STORAGE_KEYS.notifyOnError, String(notifyOnError));
+  const handleSaveAll = async () => {
     setSaving(true);
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 500);
+    try {
+      await settingsApi.saveSettings({
+        site_name: siteName,
+        site_desc: siteDesc,
+        copyright: copyright,
+        notify_on_complete: String(notifyOnComplete),
+        notify_on_error: String(notifyOnError),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      console.error('保存设置失败', e);
+      alert('保存失败，请检查后端服务');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mr-2" />
+        <span className="text-muted-foreground">加载设置...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -143,8 +164,8 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSaveAll} className="bg-emerald-600 hover:bg-emerald-700 text-white w-fit">
-        {saving ? '保存中...' : '保存全部设置'}
+      <Button onClick={handleSaveAll} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white w-fit">
+        {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> 保存中...</> : '保存全部设置'}
       </Button>
     </div>
   );

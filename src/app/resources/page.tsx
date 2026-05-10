@@ -41,30 +41,10 @@ interface MagnetResource {
 }
 
 interface SourceSite {
-  id: string;
+  id: number;
   name: string;
   url: string;
   enabled: boolean;
-}
-
-const DEFAULT_SOURCES: SourceSite[] = [
-  { id: 'pkmp4', name: '七味网', url: 'https://pkmp4.xyz', enabled: true },
-  { id: 'ttzy', name: '天堂资源', url: '#', enabled: false },
-  { id: 'ffzy', name: '非凡资源', url: '#', enabled: false },
-];
-
-const STORAGE_KEY = 'ff_source_sites';
-
-function loadSources(): SourceSite[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return DEFAULT_SOURCES;
-}
-
-function saveSources(sources: SourceSite[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sources));
 }
 
 function formatDate(iso: string): string {
@@ -88,21 +68,23 @@ export default function ResourcesPage() {
   const [magnets, setMagnets] = useState<MagnetResource[]>([]);
   const [clouds, setClouds] = useState<CloudResource[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sources, setSources] = useState<SourceSite[]>(DEFAULT_SOURCES);
+  const [sources, setSources] = useState<SourceSite[]>([]);
   const [editingSource, setEditingSource] = useState<SourceSite | null>(null);
   const [showSourceForm, setShowSourceForm] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, magnetRes, cloudRes] = await Promise.all([
+      const [statsRes, magnetRes, cloudRes, sourcesRes] = await Promise.all([
         resourceApi.getStats() as Promise<any>,
         resourceApi.listMagnet() as Promise<any>,
         resourceApi.listCloud() as Promise<any>,
+        resourceApi.listSources() as Promise<any>,
       ]);
       setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setMagnets((magnetRes.data?.data || []).slice(0, 50));
       setClouds((cloudRes.data?.data || []).slice(0, 50));
+      setSources(sourcesRes.data?.data || []);
     } catch (e) {
       console.error('fetch resource data error', e);
     } finally {
@@ -112,13 +94,17 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     fetchData();
-    setSources(loadSources());
   }, []);
 
-  const handleToggleSource = (id: string) => {
-    const updated = sources.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
-    setSources(updated);
-    saveSources(updated);
+  const handleToggleSource = async (id: number) => {
+    const source = sources.find(s => s.id === id);
+    if (!source) return;
+    try {
+      await resourceApi.toggleSource(id, !source.enabled);
+      setSources(sources.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
+    } catch {
+      alert('操作失败');
+    }
   };
 
   const handleEditSource = (source: SourceSite) => {
@@ -126,27 +112,30 @@ export default function ResourcesPage() {
     setShowSourceForm(true);
   };
 
-  const handleSaveSource = () => {
+  const handleSaveSource = async () => {
     if (!editingSource || !editingSource.name.trim()) return;
-    const exists = sources.some(s => s.id === editingSource.id);
-    const updated = exists
-      ? sources.map(s => s.id === editingSource.id ? editingSource : s)
-      : [...sources, editingSource];
-    setSources(updated);
-    saveSources(updated);
-    setShowSourceForm(false);
-    setEditingSource(null);
+    try {
+      await resourceApi.saveSource(editingSource);
+      fetchData();
+      setShowSourceForm(false);
+      setEditingSource(null);
+    } catch {
+      alert('保存失败');
+    }
   };
 
-  const handleDeleteSource = (id: string) => {
+  const handleDeleteSource = async (id: number) => {
     if (!confirm('确定删除此来源？')) return;
-    const updated = sources.filter(s => s.id !== id);
-    setSources(updated);
-    saveSources(updated);
+    try {
+      await resourceApi.deleteSource(id);
+      setSources(sources.filter(s => s.id !== id));
+    } catch {
+      alert('删除失败');
+    }
   };
 
   const handleAddSource = () => {
-    setEditingSource({ id: `src_${Date.now()}`, name: '', url: '', enabled: true });
+    setEditingSource({ id: 0, name: '', url: '', enabled: true });
     setShowSourceForm(true);
   };
 
@@ -190,7 +179,7 @@ export default function ResourcesPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSourceForm(false)}>
           <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">{sources.some(s => s.id === editingSource.id) ? '编辑来源' : '新增来源'}</h2>
+              <h2 className="text-lg font-bold text-foreground">{editingSource.id > 0 ? '编辑来源' : '新增来源'}</h2>
               <button onClick={() => setShowSourceForm(false)} className="p-1 rounded hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
