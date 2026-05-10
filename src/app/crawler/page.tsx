@@ -111,7 +111,7 @@ export default function CrawlerPage() {
   const fetchLogs = useCallback(async () => {
     try {
       setLogsLoading(true);
-      const res = await crawlerApi.getLogs() as any;
+      const res = await crawlerApi.listLogs() as any;
       setLogs(res.data?.data || []);
     } catch (e) {
       console.error('fetch logs error', e);

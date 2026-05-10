@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Film, Upload, Eye, Clock } from 'lucide-react';
+import { Film, Eye, Clock, TrendingUp } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
 
 interface Stats {
@@ -14,6 +14,10 @@ interface Stats {
   shortDramas: number;
 }
 
+const TYPE_LABELS: Record<string, string> = {
+  movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧'
+};
+
 interface RecentItem {
   id: number;
   title: string;
@@ -21,10 +25,6 @@ interface RecentItem {
   status: number;
   createdAt: string;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short: '短剧'
-};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">电影总数</p>
                 <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.movies.toLocaleString()}</p>
               </div>
-              <Film className="w-8 h-8 text-emerald-400 opacity-60" />
+              <Film className="w-8 h-8 text-blue-400 opacity-60" />
             </div>
           </CardContent>
         </Card>
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">剧集总数</p>
                 <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.dramas.toLocaleString()}</p>
               </div>
-              <Film className="w-8 h-8 text-blue-400 opacity-60" />
+              <Film className="w-8 h-8 text-purple-400 opacity-60" />
             </div>
           </CardContent>
         </Card>
@@ -116,10 +116,32 @@ export default function AdminDashboard() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">综艺/动漫/短剧</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : (stats.varieties + stats.animes + stats.shortDramas).toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">综艺总数</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.varieties.toLocaleString()}</p>
               </div>
-              <Upload className="w-8 h-8 text-amber-400 opacity-60" />
+              <Eye className="w-8 h-8 text-amber-400 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">动漫总数</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.animes.toLocaleString()}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-red-400 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">短剧总数</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : (stats.shortDramas || 0).toLocaleString()}</p>
+              </div>
+              <Film className="w-8 h-8 text-emerald-400 opacity-60" />
             </div>
           </CardContent>
         </Card>
