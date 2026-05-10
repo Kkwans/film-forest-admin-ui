@@ -54,7 +54,7 @@ export default function ContentPage() {
 
       const results = await Promise.allSettled(
         types.map(t => {
-          const params: any = { page: 1, size: 200 };
+          const params: any = { page, size: pageSize };
           if (keyword) params.keyword = keyword;
           switch (t) {
             case 'movie': return contentApi.listMovies(params);
@@ -97,7 +97,7 @@ export default function ContentPage() {
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, statusFilter, keyword]);
+  }, [typeFilter, statusFilter, keyword, page, pageSize]);
 
   useEffect(() => {
     fetchItems();
@@ -317,11 +317,40 @@ export default function ContentPage() {
         </CardContent>
       </Card>
 
+      {/* Pagination */}
+      {!loading && total > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            共 {total} 条，第 {page} / {Math.ceil(total / pageSize)} 页
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="border-border text-muted-foreground hover:text-foreground"
+            >
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= Math.ceil(total / pageSize)}
+              onClick={() => setPage(p => p + 1)}
+              className="border-border text-muted-foreground hover:text-foreground"
+            >
+              下一页
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-foreground text-base">
-            内容列表 ({loading ? '...' : filtered.length})
+            内容列表 ({loading ? '...' : total || filtered.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
