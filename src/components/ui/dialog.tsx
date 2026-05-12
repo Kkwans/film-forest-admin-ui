@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { X, AlertTriangle, Info, HelpCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DialogOptions {
   title?: string;
@@ -24,14 +25,17 @@ const VARIANT_STYLES = {
   default: {
     icon: <HelpCircle className="w-6 h-6 text-zinc-400" />,
     button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+    iconBg: 'bg-zinc-800',
   },
   danger: {
     icon: <AlertTriangle className="w-6 h-6 text-red-400" />,
     button: 'bg-red-600 hover:bg-red-500 text-white',
+    iconBg: 'bg-red-500/10',
   },
   warning: {
     icon: <Info className="w-6 h-6 text-amber-400" />,
     button: 'bg-amber-600 hover:bg-amber-500 text-white',
+    iconBg: 'bg-amber-500/10',
   },
 };
 
@@ -83,6 +87,14 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, handleClose]);
 
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [isOpen]);
+
   const variant = dialog?.variant || 'default';
   const variantStyle = VARIANT_STYLES[variant];
 
@@ -94,13 +106,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => handleClose(false)} />
           <div className="relative bg-zinc-900 border border-zinc-700/50 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
             {/* Header */}
-            <div className="px-6 pt-6 pb-2 flex items-start gap-3">
-              {variantStyle.icon}
-              <div className="flex-1">
+            <div className="px-6 pt-6 pb-2 flex items-start gap-4">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', variantStyle.iconBg)}>
+                {variantStyle.icon}
+              </div>
+              <div className="flex-1 min-w-0">
                 {dialog.title && <h3 className="text-lg font-semibold text-white">{dialog.title}</h3>}
                 <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{dialog.content}</p>
               </div>
-              <button onClick={() => handleClose(false)} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+              <button onClick={() => handleClose(false)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -117,7 +131,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => handleClose(true)}
                 disabled={loading}
-                className={`px-4 py-2 text-sm rounded-xl font-medium disabled:opacity-50 transition-colors ${variantStyle.button}`}
+                className={cn('px-4 py-2 text-sm rounded-xl font-medium disabled:opacity-50 transition-colors', variantStyle.button)}
               >
                 {loading ? '处理中...' : (dialog.confirmText || '确定')}
               </button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Eye, Clock, TrendingUp, Activity, Database, ArrowRight, Play, Square, RefreshCw } from 'lucide-react';
+import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
 
 interface Stats {
@@ -19,6 +19,7 @@ interface RecentItem {
   type: string;
   status: number;
   createdAt: string;
+  scoreDouban?: number;
 }
 
 interface CrawlerStatus {
@@ -26,6 +27,7 @@ interface CrawlerStatus {
   name: string;
   contentType: string;
   status: string;
+  enabled: number;
   lastRunTime: string | null;
   totalItems: number;
   totalRuns: number;
@@ -35,13 +37,8 @@ const TYPE_LABELS: Record<string, string> = {
   movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧'
 };
 
-const TYPE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  movie: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: '🎬' },
-  drama: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: '📺' },
-  variety: { bg: 'bg-amber-500/10', text: 'text-amber-400', icon: '🎤' },
-  anime: { bg: 'bg-red-500/10', text: 'text-red-400', icon: '🎯' },
-  short_drama: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: '⚡' },
-  short: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: '⚡' },
+const TYPE_ICONS: Record<string, string> = {
+  movie: '🎬', drama: '📺', variety: '🎤', anime: '🎯', short_drama: '⚡', short: '⚡'
 };
 
 export default function AdminDashboard() {
@@ -49,37 +46,43 @@ export default function AdminDashboard() {
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  const fetchData = async () => {
+    try {
+      const [statsRes, allRes, crawlerRes] = await Promise.all([
+        contentApi.getStats() as Promise<any>,
+        contentApi.listAll({ page: 1, size: 20 }) as Promise<any>,
+        crawlerApi.getStatus() as Promise<any>,
+      ]);
+
+      if (statsRes.data?.code === 200) setStats(statsRes.data.data);
+      if (allRes.data?.code === 200) {
+        const items = allRes.data.data;
+        items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setRecentItems(items.slice(0, 8));
+      }
+      if (crawlerRes.data?.code === 200) {
+        setCrawlerStatus(crawlerRes.data.data.schedules || []);
+      }
+      setLastRefresh(new Date());
+    } catch (e) {
+      console.error('fetch dashboard data error', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, allRes, crawlerRes] = await Promise.all([
-          contentApi.getStats() as Promise<any>,
-          contentApi.listAll({ page: 1, size: 20 }) as Promise<any>,
-          crawlerApi.getStatus() as Promise<any>,
-        ]);
-
-        if (statsRes.data?.code === 200) setStats(statsRes.data.data);
-        if (allRes.data?.code === 200) {
-          const items = allRes.data.data;
-          items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setRecentItems(items.slice(0, 6));
-        }
-        if (crawlerRes.data?.code === 200) {
-          setCrawlerStatus(crawlerRes.data.data.schedules || []);
-        }
-      } catch (e) {
-        console.error('fetch dashboard data error', e);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
     const timer = setInterval(fetchData, 30000);
     return () => clearInterval(timer);
   }, []);
 
   const totalContent = stats.movies + stats.dramas + stats.varieties + stats.animes + stats.shortDramas;
+  const runningCrawlers = crawlerStatus.filter(s => s.status === 'running').length;
+  const totalCrawlItems = crawlerStatus.reduce((sum, s) => sum + (s.totalItems || 0), 0);
+  const totalCrawlRuns = crawlerStatus.reduce((sum, s) => sum + (s.totalRuns || 0), 0);
 
   const getRelativeTime = (dateStr: string) => {
     try {
@@ -93,66 +96,82 @@ export default function AdminDashboard() {
     } catch { return dateStr; }
   };
 
+  const statCards = [
+    { label: '内容总量', value: totalContent, icon: Database, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', href: '/content' },
+    { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-blue-400', bgColor: 'bg-blue-500/10', href: '/crawler' },
+    { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-emerald-400' : 'text-zinc-500', bgColor: runningCrawlers > 0 ? 'bg-emerald-500/10' : 'bg-zinc-800', href: '/crawler' },
+    { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-amber-400', bgColor: 'bg-amber-500/10', href: '/stats' },
+  ];
+
   const contentStats = [
-    { label: '电影', value: stats.movies, color: 'from-blue-500 to-blue-600', icon: '🎬' },
-    { label: '剧集', value: stats.dramas, color: 'from-purple-500 to-purple-600', icon: '📺' },
-    { label: '综艺', value: stats.varieties, color: 'from-amber-500 to-amber-600', icon: '🎤' },
-    { label: '动漫', value: stats.animes, color: 'from-red-500 to-red-600', icon: '🎯' },
-    { label: '短剧', value: stats.shortDramas, color: 'from-emerald-500 to-emerald-600', icon: '⚡' },
+    { label: '电影', value: stats.movies, icon: '🎬', color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
+    { label: '剧集', value: stats.dramas, icon: '📺', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
+    { label: '综艺', value: stats.varieties, icon: '🎤', color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
+    { label: '动漫', value: stats.animes, icon: '🎯', color: 'text-red-400', bgColor: 'bg-red-500/10' },
+    { label: '短剧', value: stats.shortDramas, icon: '⚡', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
   ];
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700/50">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent" />
-        <div className="relative px-6 py-8 md:px-10 md:py-10">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
-              <Activity className="w-3 h-3" /> 管理后台
-            </div>
-            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
-              影视森林<span className="text-emerald-400">管理后台</span>
-            </h1>
-            <p className="text-sm md:text-base text-zinc-400 mb-6">
-              内容管理 · 爬虫监控 · 数据统计 · 系统配置
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/content" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
-                <Film className="w-4 h-4" /> 内容管理
-              </Link>
-              <Link href="/crawler" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors">
-                <Activity className="w-4 h-4" /> 爬虫管理
-              </Link>
-            </div>
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">仪表盘</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">影视森林管理后台概览</p>
         </div>
+        <button
+          onClick={() => { setLoading(true); fetchData(); }}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">刷新</span>
+        </button>
       </div>
 
-      {/* Content Stats */}
-      <div>
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Database className="w-5 h-5 text-zinc-400" /> 内容统计
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {contentStats.map((stat) => (
-            <div key={stat.label} className="relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 p-4 hover:border-zinc-700 transition-colors group">
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
-              <div className="relative">
-                <div className="text-2xl mb-2">{stat.icon}</div>
-                <p className="text-xs text-zinc-500 mb-1">{stat.label}</p>
-                <p className="text-xl font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+      {/* Overview Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((stat) => (
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="group relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 p-4 hover:border-zinc-700 transition-all"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-9 h-9 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
               </div>
+              <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
             </div>
-          ))}
-          {/* Total */}
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-4">
-            <div className="relative">
-              <div className="text-2xl mb-2">📊</div>
-              <p className="text-xs text-emerald-400/70 mb-1">内容总量</p>
-              <p className="text-xl font-bold text-emerald-400">{loading ? '-' : totalContent.toLocaleString()}</p>
-            </div>
-          </div>
+            <p className="text-xs text-zinc-500 mb-0.5">{stat.label}</p>
+            <p className="text-2xl font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+          </Link>
+        ))}
+      </div>
+
+      {/* Content Breakdown */}
+      <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">内容分布</h2>
+          <Link href="/stats" className="text-xs text-zinc-500 hover:text-emerald-400 transition-colors flex items-center gap-1">
+            详细统计 <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-5 gap-3">
+          {contentStats.map((stat) => {
+            const pct = totalContent > 0 ? (stat.value / totalContent * 100) : 0;
+            return (
+              <div key={stat.label} className="text-center">
+                <div className={`w-10 h-10 mx-auto rounded-lg ${stat.bgColor} flex items-center justify-center text-lg mb-2`}>
+                  {stat.icon}
+                </div>
+                <p className="text-lg font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+                <p className="text-xs text-zinc-500">{stat.label}</p>
+                {!loading && totalContent > 0 && (
+                  <p className={`text-xs mt-1 ${stat.color}`}>{pct.toFixed(1)}%</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -163,32 +182,37 @@ export default function AdminDashboard() {
             <h3 className="font-semibold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-zinc-400" /> 最近内容
             </h3>
-            <Link href="/content" className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+            <Link href="/content" className="text-xs text-zinc-500 hover:text-emerald-400 flex items-center gap-1 transition-colors">
               查看全部 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-zinc-800/50">
             {loading ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">加载中...</div>
+              <div className="px-5 py-10 text-center text-zinc-500 text-sm">加载中...</div>
             ) : recentItems.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">暂无内容</div>
-            ) : recentItems.map((item, i) => {
-              const typeStyle = TYPE_COLORS[item.type] || TYPE_COLORS.movie;
-              return (
-                <div key={`${item.type}-${item.id}-${i}`} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors">
-                  <div className={`w-8 h-8 rounded-lg ${typeStyle.bg} flex items-center justify-center text-sm shrink-0`}>
-                    {typeStyle.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">{item.title}</p>
-                    <p className="text-xs text-zinc-500">{TYPE_LABELS[item.type] || item.type} · {getRelativeTime(item.createdAt)}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${item.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
-                    {item.status === 1 ? '上线' : '下线'}
-                  </span>
+              <div className="px-5 py-10 text-center text-zinc-500 text-sm">暂无内容</div>
+            ) : recentItems.map((item, i) => (
+              <div key={`${item.type}-${item.id}-${i}`} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-sm shrink-0">
+                  {TYPE_ICONS[item.type] || '🎬'}
                 </div>
-              );
-            })}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{item.title}</p>
+                  <p className="text-xs text-zinc-500">
+                    {TYPE_LABELS[item.type] || item.type}
+                    {item.scoreDouban ? ` · ⭐ ${item.scoreDouban}` : ''}
+                    {' · '}{getRelativeTime(item.createdAt)}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  item.status === 1
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                }`}>
+                  {item.status === 1 ? '上线' : '下线'}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -198,15 +222,15 @@ export default function AdminDashboard() {
             <h3 className="font-semibold text-white flex items-center gap-2">
               <Activity className="w-4 h-4 text-zinc-400" /> 爬虫状态
             </h3>
-            <Link href="/crawler" className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+            <Link href="/crawler" className="text-xs text-zinc-500 hover:text-emerald-400 flex items-center gap-1 transition-colors">
               管理 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="divide-y divide-zinc-800/50">
             {loading ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">加载中...</div>
+              <div className="px-5 py-10 text-center text-zinc-500 text-sm">加载中...</div>
             ) : crawlerStatus.length === 0 ? (
-              <div className="px-5 py-8 text-center text-zinc-500 text-sm">暂无爬虫配置</div>
+              <div className="px-5 py-10 text-center text-zinc-500 text-sm">暂无爬虫配置</div>
             ) : crawlerStatus.map((task) => {
               const isRunning = task.status === 'running';
               return (
@@ -220,6 +244,12 @@ export default function AdminDashboard() {
                       <span>{task.totalRuns} 次运行</span>
                       <span>·</span>
                       <span>{task.totalItems?.toLocaleString()} 条数据</span>
+                      {task.lastRunTime && (
+                        <>
+                          <span>·</span>
+                          <span>{getRelativeTime(task.lastRunTime)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -235,23 +265,32 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: '爬虫配置', value: crawlerStatus.length, icon: '⚙️', href: '/crawler' },
-          { label: '总运行次数', value: crawlerStatus.reduce((sum, s) => sum + (s.totalRuns || 0), 0), icon: '🔄', href: '/stats' },
-          { label: '总抓取量', value: crawlerStatus.reduce((sum, s) => sum + (s.totalItems || 0), 0), icon: '📊', href: '/stats' },
-          { label: '运行中', value: crawlerStatus.filter(s => s.status === 'running').length, icon: '🟢', href: '/crawler' },
-        ].map((stat) => (
-          <Link key={stat.label} href={stat.href} className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 hover:border-zinc-700 transition-colors group">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-lg">{stat.icon}</span>
-              <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+          { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-400' },
+          { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-emerald-400' },
+          { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-amber-400' },
+          { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-purple-400' },
+        ].map((action) => (
+          <Link
+            key={action.label}
+            href={action.href}
+            className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors group"
+          >
+            <action.icon className={`w-5 h-5 ${action.color} shrink-0`} />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white">{action.label}</p>
+              <p className="text-xs text-zinc-500">{action.desc}</p>
             </div>
-            <p className="text-xs text-zinc-500 mb-1">{stat.label}</p>
-            <p className="text-lg font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+            <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-zinc-500 transition-colors ml-auto shrink-0" />
           </Link>
         ))}
+      </div>
+
+      {/* Footer info */}
+      <div className="text-center text-xs text-zinc-600 py-2">
+        上次刷新: {lastRefresh.toLocaleTimeString('zh-CN')} · 每30秒自动刷新
       </div>
     </div>
   );

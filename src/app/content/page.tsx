@@ -167,11 +167,11 @@ export default function ContentPage() {
   const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [detailItem, setDetailItem] = useState<ContentRecord | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', genre: '', region: '', director: '', actor: '', storyline: '', status: 1, type: 'movie' as ContentRecord['type'] });
+  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', scoreImdb: '', genre: '', region: '', language: '', director: '', writer: '', actor: '', storyline: '', duration: '', releaseDate: '', alias: '', status: 1, type: 'movie' as ContentRecord['type'] });
 
   const handleCreateNew = () => {
     setCreatingNew(true);
-    setEditForm({ title: '', year: '', scoreDouban: '', genre: '', region: '', director: '', actor: '', storyline: '', status: 1, type: 'movie' });
+    setEditForm({ title: '', year: '', scoreDouban: '', scoreImdb: '', genre: '', region: '', language: '', director: '', writer: '', actor: '', storyline: '', duration: '', releaseDate: '', alias: '', status: 1, type: 'movie' });
   };
 
   const handleSaveNew = async () => {
@@ -180,11 +180,17 @@ export default function ContentPage() {
       title: editForm.title,
       year: editForm.year ? Number(editForm.year) : null,
       scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
+      scoreImdb: editForm.scoreImdb ? Number(editForm.scoreImdb) : null,
       genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
       region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      language: editForm.language ? JSON.stringify(editForm.language.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
       director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      writer: editForm.writer ? JSON.stringify(editForm.writer.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
       actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
       storyline: editForm.storyline || null,
+      duration: editForm.duration ? Number(editForm.duration) : null,
+      releaseDate: editForm.releaseDate || null,
+      alias: editForm.alias ? JSON.stringify(editForm.alias.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
       status: editForm.status,
     };
     try {
@@ -214,11 +220,17 @@ export default function ContentPage() {
       title: item.title || '',
       year: String(item.year || ''),
       scoreDouban: String(item.scoreDouban || ''),
+      scoreImdb: String(item.scoreImdb || ''),
       genre: parseJsonArray(item.genre),
       region: parseJsonArray(item.region),
+      language: parseJsonArray(item.language),
       director: parseJsonArray(item.director),
+      writer: parseJsonArray((item as any).writer),
       actor: parseJsonArray(item.actor),
       storyline: item.storyline || '',
+      duration: String(item.duration || ''),
+      releaseDate: item.releaseDate || '',
+      alias: parseJsonArray(item.alias),
       status: item.status,
       type: item.type,
     });
@@ -240,11 +252,17 @@ export default function ContentPage() {
       title: editForm.title,
       year: editForm.year ? Number(editForm.year) : undefined,
       scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : undefined,
+      scoreImdb: editForm.scoreImdb ? Number(editForm.scoreImdb) : undefined,
       genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
       region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      language: editForm.language ? JSON.stringify(editForm.language.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
       director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      writer: editForm.writer ? JSON.stringify(editForm.writer.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
       actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
       storyline: editForm.storyline || undefined,
+      duration: editForm.duration ? Number(editForm.duration) : undefined,
+      releaseDate: editForm.releaseDate || undefined,
+      alias: editForm.alias ? JSON.stringify(editForm.alias.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
       status: editForm.status,
     };
     try {
@@ -257,9 +275,9 @@ export default function ContentPage() {
         case 'short_drama': res = await contentApi.updateShortDrama(editingItem.id, data); break;
       }
       if (res?.data?.code === 200 || res?.data?.code === 0) {
-        setItems(items.map(i => i.id === editingItem.id && i.type === editingItem.type ? { ...i, ...data } : i));
         setEditingItem(null);
         toast.success('已保存');
+        fetchItems();
       } else {
         toast.error('保存失败');
       }
@@ -281,8 +299,8 @@ export default function ContentPage() {
         case 'short_drama': res = await contentApi.updateShortDrama(item.id, data); break;
       }
       if (res?.data?.code === 200 || res?.data?.code === 0) {
-        setItems(items.map(i => i.id === item.id && i.type === item.type ? { ...i, status: newStatus } : i));
         toast.success(newStatus === 1 ? '已上线' : '已下线');
+        fetchItems();
       } else {
         toast.error('更新状态失败');
       }
@@ -532,9 +550,11 @@ export default function ContentPage() {
               {detailItem.region && <div><span className="text-muted-foreground">地区: </span><span className="text-foreground">{parseJsonArray(detailItem.region)}</span></div>}
               {detailItem.language && <div><span className="text-muted-foreground">语言: </span><span className="text-foreground">{parseJsonArray(detailItem.language)}</span></div>}
               {detailItem.director && <div><span className="text-muted-foreground">导演: </span><span className="text-foreground">{parseJsonArray(detailItem.director)}</span></div>}
+              {(detailItem as any).writer && <div><span className="text-muted-foreground">编剧: </span><span className="text-foreground">{parseJsonArray((detailItem as any).writer)}</span></div>}
               {detailItem.actor && <div className="col-span-2"><span className="text-muted-foreground">演员: </span><span className="text-foreground">{parseJsonArray(detailItem.actor)}</span></div>}
               {detailItem.duration && <div><span className="text-muted-foreground">时长: </span><span className="text-foreground">{detailItem.duration}分钟</span></div>}
               {detailItem.releaseDate && <div><span className="text-muted-foreground">上映: </span><span className="text-foreground">{detailItem.releaseDate}</span></div>}
+              {detailItem.alias && <div className="col-span-2"><span className="text-muted-foreground">又名: </span><span className="text-foreground">{parseJsonArray(detailItem.alias)}</span></div>}
             </div>
             {detailItem.storyline && (
               <div className="text-sm">
@@ -602,6 +622,34 @@ export default function ContentPage() {
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">演员（逗号分隔）</label>
             <input value={editForm.actor} onChange={e => setEditForm({...editForm, actor: e.target.value})} placeholder="演员A，演员B" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">语言（逗号分隔）</label>
+              <input value={editForm.language} onChange={e => setEditForm({...editForm, language: e.target.value})} placeholder="英语，汉语" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">编剧（逗号分隔）</label>
+              <input value={editForm.writer} onChange={e => setEditForm({...editForm, writer: e.target.value})} placeholder="编剧A" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">时长（分钟）</label>
+              <input value={editForm.duration} onChange={e => setEditForm({...editForm, duration: e.target.value})} placeholder="120" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">上映日期</label>
+              <input value={editForm.releaseDate} onChange={e => setEditForm({...editForm, releaseDate: e.target.value})} placeholder="2026-03-20" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">IMDb 评分</label>
+              <input value={editForm.scoreImdb} onChange={e => setEditForm({...editForm, scoreImdb: e.target.value})} placeholder="8.3" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">又名（逗号分隔）</label>
+            <input value={editForm.alias} onChange={e => setEditForm({...editForm, alias: e.target.value})} placeholder="极限返航，末日圣母号" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">剧情简介</label>
@@ -674,6 +722,34 @@ export default function ContentPage() {
                 <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
               </div>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">语言（逗号分隔）</label>
+              <input value={editForm.language} onChange={e => setEditForm({...editForm, language: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">编剧（逗号分隔）</label>
+              <input value={editForm.writer} onChange={e => setEditForm({...editForm, writer: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">时长（分钟）</label>
+              <input value={editForm.duration} onChange={e => setEditForm({...editForm, duration: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">上映日期</label>
+              <input value={editForm.releaseDate} onChange={e => setEditForm({...editForm, releaseDate: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">IMDb 评分</label>
+              <input value={editForm.scoreImdb} onChange={e => setEditForm({...editForm, scoreImdb: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">又名（逗号分隔）</label>
+            <input value={editForm.alias} onChange={e => setEditForm({...editForm, alias: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">剧情简介</label>

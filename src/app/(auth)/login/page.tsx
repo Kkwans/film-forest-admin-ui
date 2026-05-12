@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Film, Eye, EyeOff, Loader2 } from 'lucide-react';
 
-// 登录页面不需要 AuthProvider，直接处理 token
-
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');

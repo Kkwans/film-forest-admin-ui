@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // 检查是否是公开页面
-    if (PUBLIC_PATHS.includes(pathname)) {
+    if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
       setLoading(false);
       return;
     }
