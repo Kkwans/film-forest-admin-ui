@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Film, Eye, Clock, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { Film, Eye, Clock, TrendingUp, Activity, Database, ArrowRight, Play, Square, RefreshCw } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
 
 interface Stats {
@@ -14,10 +13,6 @@ interface Stats {
   shortDramas: number;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧'
-};
-
 interface RecentItem {
   id: number;
   title: string;
@@ -26,33 +21,51 @@ interface RecentItem {
   createdAt: string;
 }
 
+interface CrawlerStatus {
+  id: number;
+  name: string;
+  contentType: string;
+  status: string;
+  lastRunTime: string | null;
+  totalItems: number;
+  totalRuns: number;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧'
+};
+
+const TYPE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  movie: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: '🎬' },
+  drama: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: '📺' },
+  variety: { bg: 'bg-amber-500/10', text: 'text-amber-400', icon: '🎤' },
+  anime: { bg: 'bg-red-500/10', text: 'text-red-400', icon: '🎯' },
+  short_drama: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: '⚡' },
+  short: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: '⚡' },
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
-  const [crawlerStatus, setCrawlerStatus] = useState<any[]>([]);
+  const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 真实统计数据
-        const statsRes = await contentApi.getStats();
-        if (statsRes.data.code === 200) {
-          setStats(statsRes.data.data);
-        }
+        const [statsRes, allRes, crawlerRes] = await Promise.all([
+          contentApi.getStats() as Promise<any>,
+          contentApi.listAll({ page: 1, size: 20 }) as Promise<any>,
+          crawlerApi.getStatus() as Promise<any>,
+        ]);
 
-        // 真实最近内容（合并5类，取前5条按时间倒序）
-        const allRes = await contentApi.listAll({ page: 1, size: 20 });
-        if (allRes.data.code === 200) {
+        if (statsRes.data?.code === 200) setStats(statsRes.data.data);
+        if (allRes.data?.code === 200) {
           const items = allRes.data.data;
-          // 按 createdAt 倒序取前5
           items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setRecentItems(items.slice(0, 5));
+          setRecentItems(items.slice(0, 6));
         }
-
-        // 真实爬虫状态
-        const crawlerRes = await crawlerApi.getStatus();
-        if (crawlerRes.data.code === 200) {
+        if (crawlerRes.data?.code === 200) {
           setCrawlerStatus(crawlerRes.data.data.schedules || []);
         }
       } catch (e) {
@@ -62,7 +75,6 @@ export default function AdminDashboard() {
       }
     };
     fetchData();
-    // 每30秒刷新
     const timer = setInterval(fetchData, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -81,150 +93,165 @@ export default function AdminDashboard() {
     } catch { return dateStr; }
   };
 
+  const contentStats = [
+    { label: '电影', value: stats.movies, color: 'from-blue-500 to-blue-600', icon: '🎬' },
+    { label: '剧集', value: stats.dramas, color: 'from-purple-500 to-purple-600', icon: '📺' },
+    { label: '综艺', value: stats.varieties, color: 'from-amber-500 to-amber-600', icon: '🎤' },
+    { label: '动漫', value: stats.animes, color: 'from-red-500 to-red-600', icon: '🎯' },
+    { label: '短剧', value: stats.shortDramas, color: 'from-emerald-500 to-emerald-600', icon: '⚡' },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-800 border border-zinc-700/50">
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent" />
+        <div className="relative px-6 py-8 md:px-10 md:py-10">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
+              <Activity className="w-3 h-3" /> 管理后台
+            </div>
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
+              影视森林<span className="text-emerald-400">管理后台</span>
+            </h1>
+            <p className="text-sm md:text-base text-zinc-400 mb-6">
+              内容管理 · 爬虫监控 · 数据统计 · 系统配置
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/content" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
+                <Film className="w-4 h-4" /> 内容管理
+              </Link>
+              <Link href="/crawler" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors">
+                <Activity className="w-4 h-4" /> 爬虫管理
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Stats */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">仪表盘</h1>
-        <p className="text-sm text-muted-foreground">欢迎回来，管理员</p>
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Database className="w-5 h-5 text-zinc-400" /> 内容统计
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {contentStats.map((stat) => (
+            <div key={stat.label} className="relative overflow-hidden rounded-xl bg-zinc-900 border border-zinc-800 p-4 hover:border-zinc-700 transition-colors group">
+              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
+              <div className="relative">
+                <div className="text-2xl mb-2">{stat.icon}</div>
+                <p className="text-xs text-zinc-500 mb-1">{stat.label}</p>
+                <p className="text-xl font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+              </div>
+            </div>
+          ))}
+          {/* Total */}
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-4">
+            <div className="relative">
+              <div className="text-2xl mb-2">📊</div>
+              <p className="text-xs text-emerald-400/70 mb-1">内容总量</p>
+              <p className="text-xl font-bold text-emerald-400">{loading ? '-' : totalContent.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">电影总数</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.movies.toLocaleString()}</p>
-              </div>
-              <Film className="w-8 h-8 text-blue-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">剧集总数</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.dramas.toLocaleString()}</p>
-              </div>
-              <Film className="w-8 h-8 text-purple-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">综艺总数</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.varieties.toLocaleString()}</p>
-              </div>
-              <Eye className="w-8 h-8 text-amber-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">动漫总数</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : stats.animes.toLocaleString()}</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-red-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">短剧总数</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : (stats.shortDramas || 0).toLocaleString()}</p>
-              </div>
-              <Film className="w-8 h-8 text-emerald-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">内容总量</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{loading ? '-' : totalContent.toLocaleString()}</p>
-              </div>
-              <Eye className="w-8 h-8 text-purple-400 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Content */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">最近内容</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-zinc-400" /> 最近内容
+            </h3>
+            <Link href="/content" className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+              查看全部 <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-zinc-800/50">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">加载中...</div>
+              <div className="px-5 py-8 text-center text-zinc-500 text-sm">加载中...</div>
             ) : recentItems.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">暂无内容</div>
-            ) : (
-              <div className="space-y-3">
-                {recentItems.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                        <Film className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{TYPE_LABELS[item.type] || item.type} · {getRelativeTime(item.createdAt)}</p>
-                      </div>
-                    </div>
-                    <Badge className={item.status === 1 ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-700/50 text-muted-foreground border-zinc-600/30'}>
-                      {item.status === 1 ? '已上线' : '已下线'}
-                    </Badge>
+              <div className="px-5 py-8 text-center text-zinc-500 text-sm">暂无内容</div>
+            ) : recentItems.map((item, i) => {
+              const typeStyle = TYPE_COLORS[item.type] || TYPE_COLORS.movie;
+              return (
+                <div key={`${item.type}-${item.id}-${i}`} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg ${typeStyle.bg} flex items-center justify-center text-sm shrink-0`}>
+                    {typeStyle.icon}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{item.title}</p>
+                    <p className="text-xs text-zinc-500">{TYPE_LABELS[item.type] || item.type} · {getRelativeTime(item.createdAt)}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${item.status === 1 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {item.status === 1 ? '上线' : '下线'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Crawler Status */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">爬虫状态</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Activity className="w-4 h-4 text-zinc-400" /> 爬虫状态
+            </h3>
+            <Link href="/crawler" className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors">
+              管理 <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-zinc-800/50">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">加载中...</div>
+              <div className="px-5 py-8 text-center text-zinc-500 text-sm">加载中...</div>
             ) : crawlerStatus.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">暂无爬虫配置</div>
-            ) : (
-              <div className="space-y-4">
-                {crawlerStatus.slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{task.name || task.sourceSite + ' - ' + task.contentType}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">上次: {task.lastRunTime ? getRelativeTime(task.lastRunTime) : '从未运行'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={task.status === 'running' ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-700/50 text-muted-foreground border-zinc-600/30'}>
-                        {task.status === 'running' ? '运行中' : task.status === 'idle' ? '空闲' : task.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{task.totalItems || 0} 条</span>
+              <div className="px-5 py-8 text-center text-zinc-500 text-sm">暂无爬虫配置</div>
+            ) : crawlerStatus.map((task) => {
+              const isRunning = task.status === 'running';
+              return (
+                <div key={task.id} className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isRunning ? 'bg-emerald-500/10' : 'bg-zinc-800'}`}>
+                    {isRunning ? <Play className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4 text-zinc-500" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{task.name}</p>
+                    <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <span>{task.totalRuns} 次运行</span>
+                      <span>·</span>
+                      <span>{task.totalItems?.toLocaleString()} 条数据</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+                    <span className={`text-xs ${isRunning ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                      {isRunning ? '运行中' : '空闲'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: '爬虫配置', value: crawlerStatus.length, icon: '⚙️', href: '/crawler' },
+          { label: '总运行次数', value: crawlerStatus.reduce((sum, s) => sum + (s.totalRuns || 0), 0), icon: '🔄', href: '/stats' },
+          { label: '总抓取量', value: crawlerStatus.reduce((sum, s) => sum + (s.totalItems || 0), 0), icon: '📊', href: '/stats' },
+          { label: '运行中', value: crawlerStatus.filter(s => s.status === 'running').length, icon: '🟢', href: '/crawler' },
+        ].map((stat) => (
+          <Link key={stat.label} href={stat.href} className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 hover:border-zinc-700 transition-colors group">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-lg">{stat.icon}</span>
+              <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+            </div>
+            <p className="text-xs text-zinc-500 mb-1">{stat.label}</p>
+            <p className="text-lg font-bold text-white">{loading ? '-' : stat.value.toLocaleString()}</p>
+          </Link>
+        ))}
       </div>
     </div>
   );

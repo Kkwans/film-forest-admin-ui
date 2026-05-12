@@ -1,14 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertTriangle, Info, HelpCircle } from 'lucide-react';
 
 interface DialogOptions {
   title?: string;
   content: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'default' | 'danger';
+  variant?: 'default' | 'danger' | 'warning';
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
 }
@@ -19,6 +19,21 @@ interface DialogContextValue {
 }
 
 const DialogContext = createContext<DialogContextValue | null>(null);
+
+const VARIANT_STYLES = {
+  default: {
+    icon: <HelpCircle className="w-6 h-6 text-zinc-400" />,
+    button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+  },
+  danger: {
+    icon: <AlertTriangle className="w-6 h-6 text-red-400" />,
+    button: 'bg-red-600 hover:bg-red-500 text-white',
+  },
+  warning: {
+    icon: <Info className="w-6 h-6 text-amber-400" />,
+    button: 'bg-amber-600 hover:bg-amber-500 text-white',
+  },
+};
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<DialogOptions | null>(null);
@@ -59,7 +74,6 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setResolveRef(null);
   }, [dialog, loading, resolveRef]);
 
-  // ESC 关闭
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -69,34 +83,33 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, handleClose]);
 
+  const variant = dialog?.variant || 'default';
+  const variantStyle = VARIANT_STYLES[variant];
+
   return (
     <DialogContext.Provider value={{ confirm, alert }}>
       {children}
       {isOpen && dialog && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
-          {/* 遮罩 */}
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => handleClose(false)} />
-          {/* 弹窗 */}
-          <div className="relative bg-card border rounded-xl shadow-xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200">
-            {/* 标题 */}
-            {dialog.title && (
-              <div className="flex items-center justify-between px-6 pt-5 pb-1">
-                <h3 className="text-lg font-semibold text-foreground">{dialog.title}</h3>
-                <button onClick={() => handleClose(false)} className="p-1 rounded hover:bg-muted text-muted-foreground">
-                  <X className="w-4 h-4" />
-                </button>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => handleClose(false)} />
+          <div className="relative bg-zinc-900 border border-zinc-700/50 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-2 flex items-start gap-3">
+              {variantStyle.icon}
+              <div className="flex-1">
+                {dialog.title && <h3 className="text-lg font-semibold text-white">{dialog.title}</h3>}
+                <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{dialog.content}</p>
               </div>
-            )}
-            {/* 内容 */}
-            <div className={`px-6 ${dialog.title ? 'pt-2 pb-4' : 'pt-5 pb-4'}`}>
-              <p className="text-sm text-muted-foreground leading-relaxed">{dialog.content}</p>
+              <button onClick={() => handleClose(false)} className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            {/* 按钮 */}
-            <div className="flex items-center justify-end gap-2 px-6 pb-5">
+            {/* Buttons */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 bg-zinc-900/50">
               {dialog.cancelText && (
                 <button
                   onClick={() => handleClose(false)}
-                  className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors"
+                  className="px-4 py-2 text-sm rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
                 >
                   {dialog.cancelText}
                 </button>
@@ -104,11 +117,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               <button
                 onClick={() => handleClose(true)}
                 disabled={loading}
-                className={`px-4 py-2 text-sm rounded-lg text-white font-medium disabled:opacity-50 transition-colors ${
-                  dialog.variant === 'danger'
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
+                className={`px-4 py-2 text-sm rounded-xl font-medium disabled:opacity-50 transition-colors ${variantStyle.button}`}
               >
                 {loading ? '处理中...' : (dialog.confirmText || '确定')}
               </button>

@@ -45,6 +45,9 @@ export const crawlerApi = {
 
   /** 获取状态概览 */
   getStatus: () => adminClient.get('/api/crawler/status'),
+
+  /** 获取资源来源列表 */
+  listSources: () => adminClient.get('/api/crawler/sources'),
 };
 
 export interface CrawlerSchedule {
@@ -154,6 +157,9 @@ export const contentApi = {
 
   // 统计
   getStats: () => adminClient.get('/api/content/stats'),
+
+  // Genre 列表（爬虫配置用）
+  getGenres: (contentType: string) => adminClient.get('/api/content/genres', { params: { contentType } }),
 };
 
 // 系统设置 API

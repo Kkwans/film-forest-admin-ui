@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, X, Save, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { resourceApi } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 
 interface ResourceStats {
   online: number;
@@ -64,6 +66,8 @@ const DISK_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function ResourcesPage() {
+  const toast = useToast();
+  const dialog = useDialog();
   const [stats, setStats] = useState<ResourceStats>({ online: 0, magnet: 0, cloud: 0, todayNew: 0 });
   const [magnets, setMagnets] = useState<MagnetResource[]>([]);
   const [clouds, setClouds] = useState<CloudResource[]>([]);
@@ -102,8 +106,9 @@ export default function ResourcesPage() {
     try {
       await resourceApi.toggleSource(id, !source.enabled);
       setSources(sources.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
+      toast.success(source.enabled ? '已禁用' : '已启用');
     } catch {
-      alert('操作失败');
+      toast.error('操作失败');
     }
   };
 
@@ -116,21 +121,24 @@ export default function ResourcesPage() {
     if (!editingSource || !editingSource.name.trim()) return;
     try {
       await resourceApi.saveSource(editingSource);
+      toast.success('来源已保存');
       fetchData();
       setShowSourceForm(false);
       setEditingSource(null);
     } catch {
-      alert('保存失败');
+      toast.error('保存失败');
     }
   };
 
   const handleDeleteSource = async (id: number) => {
-    if (!confirm('确定删除此来源？')) return;
+    const ok = await dialog.confirm({ title: '删除来源', content: '确定删除此资源来源？', confirmText: '删除', cancelText: '取消', variant: 'danger' });
+    if (!ok) return;
     try {
       await resourceApi.deleteSource(id);
       setSources(sources.filter(s => s.id !== id));
+      toast.success('已删除');
     } catch {
-      alert('删除失败');
+      toast.error('删除失败');
     }
   };
 

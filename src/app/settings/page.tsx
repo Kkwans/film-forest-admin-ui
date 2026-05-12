@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Settings, Database, Bell, Shield, Loader2 } from 'lucide-react';
 import { settingsApi } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
 
 export default function SettingsPage() {
   const [siteName, setSiteName] = useState('影视森林');
@@ -14,8 +15,8 @@ export default function SettingsPage() {
   const [copyright, setCopyright] = useState('© 2026 影视森林. 仅供学习交流.');
   const [notifyOnComplete, setNotifyOnComplete] = useState(true);
   const [notifyOnError, setNotifyOnError] = useState(false);
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // 从后端加载设置
@@ -44,11 +45,10 @@ export default function SettingsPage() {
         notify_on_complete: String(notifyOnComplete),
         notify_on_error: String(notifyOnError),
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      toast.success('设置已保存');
     } catch (e) {
       console.error('保存设置失败', e);
-      alert('保存失败，请检查后端服务');
+      toast.error('保存失败，请检查后端服务');
     } finally {
       setSaving(false);
     }
@@ -70,7 +70,6 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-foreground">系统设置</h1>
           <p className="text-sm text-muted-foreground mt-1">配置系统参数与偏好</p>
         </div>
-        {saved && <span className="text-emerald-500 text-sm">✓ 已保存</span>}
       </div>
 
       <Card className="bg-card border-border">
@@ -160,7 +159,7 @@ export default function SettingsPage() {
             <Label className="text-foreground">修改密码</Label>
             <Input type="password" placeholder="新密码" className="bg-background border-border text-foreground" />
           </div>
-          <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => alert('密码更新功能需要后端用户认证模块支持，当前版本暂不可用')}>更新密码</Button>
+          <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => toast.info('密码更新功能需要后端用户认证模块支持，当前版本暂不可用')}>更新密码</Button>
         </CardContent>
       </Card>
 

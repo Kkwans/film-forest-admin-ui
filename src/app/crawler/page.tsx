@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { crawlerApi, type CrawlerSchedule } from '@/lib/api';
+import { crawlerApi, contentApi, type CrawlerSchedule } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp } from 'lucide-react';
@@ -53,6 +53,12 @@ interface ScheduleForm {
   enabled: number;
 }
 
+interface SourceOption {
+  id: number;
+  name: string;
+  url: string;
+}
+
 interface CrawlerTaskLog {
   id: number;
   scheduleId: number;
@@ -94,6 +100,10 @@ export default function CrawlerPage() {
   const [logs, setLogs] = useState<CrawlerTaskLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [sources, setSources] = useState<SourceOption[]>([]);
+  const [cronMode, setCronMode] = useState<'preset' | 'custom'>('preset');
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -125,6 +135,24 @@ export default function CrawlerPage() {
   }, []);
 
   useEffect(() => { fetchSchedules(); }, [fetchSchedules]);
+
+  // 加载资源来源列表
+  useEffect(() => {
+    crawlerApi.listSources().then(res => {
+      const data = (res as any).data;
+      if (data?.code === 200) setSources(data.data || []);
+    }).catch(() => {});
+  }, []);
+
+  // 当 contentType 变化时加载 genre 列表
+  useEffect(() => {
+    if (showForm) {
+      contentApi.getGenres(form.contentType).then(res => {
+        const data = (res as any).data;
+        if (data?.code === 200) setGenres(data.data || []);
+      }).catch(() => setGenres([]));
+    }
+  }, [form.contentType, showForm]);
 
   const handleStart = async (id: number) => {
     setActionId(id);
@@ -169,6 +197,18 @@ export default function CrawlerPage() {
       genreFilter: parseGenreFilterForDisplay(schedule.genreFilter),
       enabled: schedule.enabled,
     });
+    // 解析 genreFilter 为选中项
+    try {
+      if (schedule.genreFilter) {
+        const arr = JSON.parse(schedule.genreFilter);
+        setSelectedGenres(Array.isArray(arr) ? arr : []);
+      } else {
+        setSelectedGenres([]);
+      }
+    } catch { setSelectedGenres([]); }
+    // 判断 Cron 模式
+    const isPreset = CRON_PRESETS.some(p => p.value === schedule.cronExpression);
+    setCronMode(isPreset ? 'preset' : 'custom');
     setEditingId(schedule.id);
     setShowForm(true);
   };
@@ -177,7 +217,11 @@ export default function CrawlerPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      await crawlerApi.saveSchedule(form);
+      const submitData = {
+        ...form,
+        genreFilter: selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : '',
+      };
+      await crawlerApi.saveSchedule(submitData);
       toast.success(editingId ? '配置已更新' : '配置已创建');
       setShowForm(false);
       setEditingId(null);
@@ -189,6 +233,8 @@ export default function CrawlerPage() {
   const handleCreateNew = () => {
     setForm(EMPTY_FORM);
     setEditingId(null);
+    setSelectedGenres([]);
+    setCronMode('preset');
     setShowForm(true);
   };
 
@@ -241,20 +287,63 @@ export default function CrawlerPage() {
                 </select>
               </div>
               <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">资源来源</label>
+                <select value={form.sourceSite} onChange={e => setForm({...form, sourceSite: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+                  {sources.length > 0
+                    ? sources.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
+                    : <option value="七味网">七味网</option>}
+                </select>
+              </div>
+              <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">优先级</label>
                 <select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
                   {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
+              {/* Genre 多选 */}
               <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">类型筛选（可选，留空爬全部）</label>
-                <input value={form.genreFilter} onChange={e => setForm({...form, genreFilter: e.target.value})} placeholder="如：爱情,科幻（逗号分隔）" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+                <label className="text-sm font-medium text-foreground">类型筛选（留空爬全部）</label>
+                {genres.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 rounded-lg border bg-background">
+                    {genres.map(g => (
+                      <label key={g} className="flex items-center gap-1.5 text-sm text-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedGenres.includes(g)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedGenres(prev => [...prev, g]);
+                            } else {
+                              setSelectedGenres(prev => prev.filter(x => x !== g));
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        {g}
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">加载中...</p>
+                )}
+                {selectedGenres.length > 0 && (
+                  <p className="text-xs text-muted-foreground">已选: {selectedGenres.join('，')}</p>
+                )}
               </div>
+              {/* Cron 编辑器 */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">定时规则</label>
-                <select value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                  {CRON_PRESETS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                <div className="flex gap-2 mb-2">
+                  <button type="button" onClick={() => setCronMode('preset')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'preset' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}>预设</button>
+                  <button type="button" onClick={() => setCronMode('custom')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'custom' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}>自定义</button>
+                </div>
+                {cronMode === 'preset' ? (
+                  <select value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+                    {CRON_PRESETS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                ) : (
+                  <input value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} placeholder="0 2 * * *" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm font-mono" />
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">

@@ -18,6 +18,16 @@ interface ContentRecord {
   posterUrl?: string;
   year?: number;
   scoreDouban?: number;
+  scoreImdb?: number;
+  genre?: string;
+  region?: string;
+  language?: string;
+  director?: string;
+  actor?: string;
+  storyline?: string;
+  duration?: number;
+  releaseDate?: string;
+  alias?: string;
   status: number;
   createdAt: string;
   updatedAt: string;
@@ -156,11 +166,12 @@ export default function ContentPage() {
 
   const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
-  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', status: 1, type: 'movie' as ContentRecord['type'] });
+  const [detailItem, setDetailItem] = useState<ContentRecord | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', genre: '', region: '', director: '', actor: '', storyline: '', status: 1, type: 'movie' as ContentRecord['type'] });
 
   const handleCreateNew = () => {
     setCreatingNew(true);
-    setEditForm({ title: '', year: '', scoreDouban: '', status: 1, type: 'movie' });
+    setEditForm({ title: '', year: '', scoreDouban: '', genre: '', region: '', director: '', actor: '', storyline: '', status: 1, type: 'movie' });
   };
 
   const handleSaveNew = async () => {
@@ -169,6 +180,11 @@ export default function ContentPage() {
       title: editForm.title,
       year: editForm.year ? Number(editForm.year) : null,
       scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
+      genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
+      storyline: editForm.storyline || null,
       status: editForm.status,
     };
     try {
@@ -198,10 +214,24 @@ export default function ContentPage() {
       title: item.title || '',
       year: String(item.year || ''),
       scoreDouban: String(item.scoreDouban || ''),
+      genre: parseJsonArray(item.genre),
+      region: parseJsonArray(item.region),
+      director: parseJsonArray(item.director),
+      actor: parseJsonArray(item.actor),
+      storyline: item.storyline || '',
       status: item.status,
       type: item.type,
     });
   };
+
+  /** 解析 JSON 数组为逗号分隔字符串 */
+  function parseJsonArray(json: string | undefined): string {
+    if (!json) return '';
+    try {
+      const arr = JSON.parse(json);
+      return Array.isArray(arr) ? arr.join('，') : json;
+    } catch { return json; }
+  }
 
   const handleSaveEdit = async () => {
     if (!editingItem) return;
@@ -210,6 +240,11 @@ export default function ContentPage() {
       title: editForm.title,
       year: editForm.year ? Number(editForm.year) : undefined,
       scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : undefined,
+      genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
+      storyline: editForm.storyline || undefined,
       status: editForm.status,
     };
     try {
@@ -444,7 +479,7 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => handlePreview(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="预览">
+                          <button onClick={() => setDetailItem(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="详情">
                             <Eye className="w-4 h-4" />
                           </button>
                           <button onClick={() => handleEditClick(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="编辑">
@@ -468,8 +503,54 @@ export default function ContentPage() {
         </CardContent>
       </Card>
 
+      {/* Detail Modal */}
+      <Modal open={!!detailItem} onClose={() => setDetailItem(null)} title="内容详情" width="lg">
+        {detailItem && (
+          <div className="space-y-4 py-2">
+            <div className="flex gap-4">
+              <img
+                src={detailItem.posterUrl || `https://picsum.photos/seed/${detailItem.type}${detailItem.id}/200/300`}
+                alt={detailItem.title}
+                className="w-32 h-44 object-cover rounded-lg"
+                onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${detailItem.type}${detailItem.id}/200/300`; }}
+              />
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-bold text-foreground">{detailItem.title}</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className="bg-muted text-muted-foreground">{TYPE_LABELS[detailItem.type]}</Badge>
+                  {detailItem.year && <Badge className="bg-muted text-muted-foreground">{detailItem.year}</Badge>}
+                  {detailItem.scoreDouban && <Badge className="bg-emerald-600/20 text-emerald-400">豆瓣 {detailItem.scoreDouban}</Badge>}
+                  {detailItem.scoreImdb && <Badge className="bg-blue-600/20 text-blue-400">IMDb {detailItem.scoreImdb}</Badge>}
+                  <Badge className={detailItem.status === 1 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-zinc-600/20 text-zinc-400'}>
+                    {detailItem.status === 1 ? '已上线' : '已下线'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {detailItem.genre && <div><span className="text-muted-foreground">类型: </span><span className="text-foreground">{parseJsonArray(detailItem.genre)}</span></div>}
+              {detailItem.region && <div><span className="text-muted-foreground">地区: </span><span className="text-foreground">{parseJsonArray(detailItem.region)}</span></div>}
+              {detailItem.language && <div><span className="text-muted-foreground">语言: </span><span className="text-foreground">{parseJsonArray(detailItem.language)}</span></div>}
+              {detailItem.director && <div><span className="text-muted-foreground">导演: </span><span className="text-foreground">{parseJsonArray(detailItem.director)}</span></div>}
+              {detailItem.actor && <div className="col-span-2"><span className="text-muted-foreground">演员: </span><span className="text-foreground">{parseJsonArray(detailItem.actor)}</span></div>}
+              {detailItem.duration && <div><span className="text-muted-foreground">时长: </span><span className="text-foreground">{detailItem.duration}分钟</span></div>}
+              {detailItem.releaseDate && <div><span className="text-muted-foreground">上映: </span><span className="text-foreground">{detailItem.releaseDate}</span></div>}
+            </div>
+            {detailItem.storyline && (
+              <div className="text-sm">
+                <p className="text-muted-foreground mb-1">剧情简介:</p>
+                <p className="text-foreground leading-relaxed">{detailItem.storyline}</p>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              <p>ID: {detailItem.id} | 创建: {detailItem.createdAt?.slice(0, 19)} | 更新: {detailItem.updatedAt?.slice(0, 19)}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Create Modal */}
-      <Modal open={creatingNew} onClose={() => setCreatingNew(false)} title="新增内容" width="md"
+      <Modal open={creatingNew} onClose={() => setCreatingNew(false)} title="新增内容" width="lg"
         footer={
           <>
             <button onClick={() => setCreatingNew(false)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
@@ -478,15 +559,21 @@ export default function ContentPage() {
         }
       >
         <div className="space-y-4 py-2">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">内容类型</label>
-            <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-              <option value="movie">电影</option>
-              <option value="drama">剧集</option>
-              <option value="variety">综艺</option>
-              <option value="anime">动漫</option>
-              <option value="short_drama">短剧</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">内容类型</label>
+              <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+                <option value="movie">电影</option>
+                <option value="drama">剧集</option>
+                <option value="variety">综艺</option>
+                <option value="anime">动漫</option>
+                <option value="short_drama">短剧</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">年份</label>
+              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} placeholder="2026" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">标题</label>
@@ -494,19 +581,37 @@ export default function ContentPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">年份</label>
-              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} placeholder="2026" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
               <label className="text-sm font-medium text-foreground">豆瓣评分</label>
               <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} placeholder="8.5" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">类型（逗号分隔）</label>
+              <input value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} placeholder="剧情，喜剧" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">地区（逗号分隔）</label>
+              <input value={editForm.region} onChange={e => setEditForm({...editForm, region: e.target.value})} placeholder="中国大陆" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">导演（逗号分隔）</label>
+              <input value={editForm.director} onChange={e => setEditForm({...editForm, director: e.target.value})} placeholder="张三" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">演员（逗号分隔）</label>
+            <input value={editForm.actor} onChange={e => setEditForm({...editForm, actor: e.target.value})} placeholder="演员A，演员B" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">剧情简介</label>
+            <textarea value={editForm.storyline} onChange={e => setEditForm({...editForm, storyline: e.target.value})} rows={3} className="px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none" />
           </div>
         </div>
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="编辑内容" width="md"
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="编辑内容" width="lg"
         footer={
           <>
             <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
@@ -515,26 +620,64 @@ export default function ContentPage() {
         }
       >
         <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">内容类型</label>
+              <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+                <option value="movie">电影</option>
+                <option value="drama">剧集</option>
+                <option value="variety">综艺</option>
+                <option value="anime">动漫</option>
+                <option value="short_drama">短剧</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">年份</label>
+              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">标题</label>
             <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">年份</label>
-              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
               <label className="text-sm font-medium text-foreground">豆瓣评分</label>
               <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">类型（逗号分隔）</label>
+              <input value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-foreground">状态</label>
-            <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
-            </button>
-            <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">地区（逗号分隔）</label>
+              <input value={editForm.region} onChange={e => setEditForm({...editForm, region: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">导演（逗号分隔）</label>
+              <input value={editForm.director} onChange={e => setEditForm({...editForm, director: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">演员（逗号分隔）</label>
+              <input value={editForm.actor} onChange={e => setEditForm({...editForm, actor: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">状态</label>
+              <div className="flex items-center gap-2 h-9">
+                <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
+                </button>
+                <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">剧情简介</label>
+            <textarea value={editForm.storyline} onChange={e => setEditForm({...editForm, storyline: e.target.value})} rows={3} className="px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none" />
           </div>
         </div>
       </Modal>
