@@ -141,6 +141,16 @@ export default function CrawlerPage() {
     try { await crawlerApi.deleteSchedule(id); await fetchSchedules(); } catch (e) { console.error(e); }
   };
 
+  /** 将 JSON 数组格式的 genreFilter 转为逗号分隔显示 */
+  const parseGenreFilterForDisplay = (gf: string | null): string => {
+    if (!gf) return '';
+    try {
+      const arr = JSON.parse(gf);
+      if (Array.isArray(arr)) return arr.join('，');
+    } catch {}
+    return gf;
+  };
+
   const handleEdit = (schedule: CrawlerSchedule) => {
     setForm({
       id: schedule.id,
@@ -151,7 +161,7 @@ export default function CrawlerPage() {
       batchSize: schedule.batchSize,
       rateLimitMs: schedule.rateLimitMs,
       priority: schedule.priority,
-      genreFilter: schedule.genreFilter || '',
+      genreFilter: parseGenreFilterForDisplay(schedule.genreFilter),
       enabled: schedule.enabled,
     });
     setEditingId(schedule.id);
