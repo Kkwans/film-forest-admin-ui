@@ -16,6 +16,32 @@ const adminClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// 请求拦截器：自动添加 token
+adminClient.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// 响应拦截器：401 时跳转登录
+adminClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.data?.code === 500 && error.response?.data?.message?.includes('未登录')) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const crawlerApi = {
   /** 获取所有定时配置 */
   listSchedules: () => adminClient.get('/api/crawler/schedules'),

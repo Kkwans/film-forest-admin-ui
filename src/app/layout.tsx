@@ -4,6 +4,7 @@ import "./globals.css";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
 import { Providers } from "@/components/providers";
+import { AuthProvider } from "@/components/auth-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,15 +29,17 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-full bg-background text-foreground`}>
         <Providers>
-          <div className="flex h-screen overflow-hidden">
-            <AdminSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <AdminHeader />
-              <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                {children}
-              </main>
+          <AuthProvider>
+            <div className="flex h-screen overflow-hidden">
+              <AdminSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <AdminHeader />
+                <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
+          </AuthProvider>
         </Providers>
       </body>
     </html>
