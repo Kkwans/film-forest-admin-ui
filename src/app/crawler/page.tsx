@@ -4,7 +4,209 @@ import { useEffect, useState, useCallback } from 'react';
 import { crawlerApi, contentApi, type CrawlerSchedule } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
+import { Select } from '@/components/ui/select';
 import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+
+// ========== Cron 可视化构建器 ==========
+
+type CronMode = 'interval' | 'daily' | 'weekly' | 'monthly';
+
+const WEEKDAYS = [
+  { label: '周日', value: '0' }, { label: '周一', value: '1' }, { label: '周二', value: '2' },
+  { label: '周三', value: '3' }, { label: '周四', value: '4' }, { label: '周五', value: '5' }, { label: '周六', value: '6' },
+];
+
+const INTERVAL_OPTIONS = [
+  { label: '每10分钟', value: '*/10 * * * *' },
+  { label: '每15分钟', value: '*/15 * * * *' },
+  { label: '每20分钟', value: '*/20 * * * *' },
+  { label: '每30分钟', value: '*/30 * * * *' },
+  { label: '每1小时', value: '0 * * * *' },
+  { label: '每2小时', value: '0 */2 * * *' },
+  { label: '每3小时', value: '0 */3 * * *' },
+  { label: '每4小时', value: '0 */4 * * *' },
+  { label: '每6小时', value: '0 */6 * * *' },
+  { label: '每8小时', value: '0 */8 * * *' },
+  { label: '每12小时', value: '0 */12 * * *' },
+];
+
+function parseCronMode(expr: string): CronMode {
+  if (!expr) return 'daily';
+  const parts = expr.split(' ');
+  if (parts.length !== 5) return 'daily';
+  const [min, hour, dom, , dow] = parts;
+  if (min.includes('*/') && hour === '*') return 'interval';
+  if (dow !== '*' && dom === '*') return 'weekly';
+  if (dom !== '*' && dow === '*') return 'monthly';
+  return 'daily';
+}
+
+function buildCron(mode: CronMode, interval: string, hour: string, minute: string, dom: string, dow: string[]): string {
+  switch (mode) {
+    case 'interval': return interval;
+    case 'daily': return `${minute} ${hour} * * *`;
+    case 'weekly': return `${minute} ${hour} * * ${dow.join(',') || '1'}`;
+    case 'monthly': return `${minute} ${hour} ${dom || '1'} * *`;
+  }
+}
+
+function describeCron(expr: string): string {
+  if (!expr) return '未设置';
+  const parts = expr.split(' ');
+  if (parts.length !== 5) return expr;
+  const [min, hour, dom, , dow] = parts;
+
+  // 每隔 N 分钟/小时
+  if (min.startsWith('*/')) return `每${min.replace('*/', '')}分钟执行一次`;
+  if (hour.startsWith('*/')) return `每${hour.replace('*/', '')}小时执行一次`;
+
+  // 每天定时
+  const h = hour.padStart(2, '0');
+  const m = min.padStart(2, '0');
+  if (dom === '*' && dow === '*') return `每天 ${h}:${m} 执行`;
+
+  // 每周几
+  if (dom === '*' && dow !== '*') {
+    const dayNames = dow.split(',').map(d => WEEKDAYS.find(w => w.value === d)?.label || d);
+    return `每${dayNames.join('、')} ${h}:${m} 执行`;
+  }
+
+  // 每月几号
+  if (dom !== '*' && dow === '*') return `每月${dom}号 ${h}:${m} 执行`;
+
+  return expr;
+}
+
+function CronBuilder({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [mode, setMode] = useState<CronMode>(() => parseCronMode(value));
+  const [interval, setInterval] = useState(value || '*/30 * * * *');
+  const [hour, setHour] = useState('2');
+  const [minute, setMinute] = useState('0');
+  const [dom, setDom] = useState('1');
+  const [dow, setDow] = useState<string[]>(['1']);
+
+  // 从 value 初始化
+  useEffect(() => {
+    const m = parseCronMode(value);
+    setMode(m);
+    if (m === 'interval') setInterval(value);
+    else {
+      const parts = value.split(' ');
+      if (parts.length === 5) {
+        setMinute(parts[0]);
+        setHour(parts[1]);
+        setDom(parts[2] === '*' ? '1' : parts[2]);
+        if (parts[4] !== '*') setDow(parts[4].split(','));
+      }
+    }
+  }, [value]);
+
+  const update = (newMode: CronMode, newInterval?: string, newHour?: string, newMinute?: string, newDom?: string, newDow?: string[]) => {
+    const m = newMode || mode;
+    const result = buildCron(m, newInterval || interval, newHour || hour, newMinute || minute, newDom || dom, newDow || dow);
+    onChange(result);
+  };
+
+  const hourOptions = Array.from({ length: 24 }, (_, i) => ({ label: `${String(i).padStart(2, '0')}时`, value: String(i) }));
+  const minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5).map(i => ({ label: `${String(i).padStart(2, '0')}分`, value: String(i) }));
+  const domOptions = Array.from({ length: 28 }, (_, i) => ({ label: `${i + 1}号`, value: String(i + 1) }));
+
+  return (
+    <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+      {/* 模式选择 */}
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: 'interval' as CronMode, label: '定时间隔' },
+          { key: 'daily' as CronMode, label: '每天定时' },
+          { key: 'weekly' as CronMode, label: '每周定时' },
+          { key: 'monthly' as CronMode, label: '每月定时' },
+        ]).map(opt => (
+          <button key={opt.key} type="button" onClick={() => { setMode(opt.key); update(opt.key); }}
+            className={`px-4 py-2 text-sm rounded-lg transition-colors ${mode === opt.key ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 各模式配置 */}
+      {mode === 'interval' && (
+        <div className="grid gap-2">
+          <label className="text-xs text-muted-foreground">选择间隔</label>
+          <div className="flex flex-wrap gap-2">
+            {INTERVAL_OPTIONS.map(opt => (
+              <button key={opt.value} type="button" onClick={() => { setInterval(opt.value); onChange(opt.value); }}
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${interval === opt.value ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {mode === 'daily' && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">每天</span>
+          <select value={hour} onChange={e => { setHour(e.target.value); update(mode, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+            {hourOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select value={minute} onChange={e => { setMinute(e.target.value); update(mode, undefined, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+            {minuteOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <span className="text-sm text-muted-foreground">执行</span>
+        </div>
+      )}
+
+      {mode === 'weekly' && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map(d => (
+              <button key={d.value} type="button" onClick={() => {
+                const newDow = dow.includes(d.value) ? dow.filter(x => x !== d.value) : [...dow, d.value];
+                setDow(newDow); update(mode, undefined, undefined, undefined, undefined, newDow);
+              }}
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${dow.includes(d.value) ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">时间</span>
+            <select value={hour} onChange={e => { setHour(e.target.value); update(mode, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+              {hourOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select value={minute} onChange={e => { setMinute(e.target.value); update(mode, undefined, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+              {minuteOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {mode === 'monthly' && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">每月</span>
+          <select value={dom} onChange={e => { setDom(e.target.value); update(mode, undefined, undefined, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+            {domOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select value={hour} onChange={e => { setHour(e.target.value); update(mode, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+            {hourOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select value={minute} onChange={e => { setMinute(e.target.value); update(mode, undefined, undefined, e.target.value); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+            {minuteOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      )}
+
+      {/* 预览 */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+        <Clock className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm text-foreground">{describeCron(value)}</span>
+        <span className="text-xs text-muted-foreground font-mono ml-auto">{value}</span>
+      </div>
+    </div>
+  );
+}
+
+// ========== 页面主组件 ==========
 
 function formatTime(iso: string | null): string {
   if (!iso) return '-';
@@ -31,24 +233,6 @@ const PRIORITY_OPTIONS = [
   { label: '按热度从高到低', value: 'by_hot' },
 ];
 
-const CRON_PRESETS = [
-  { label: '每15分钟', value: '*/15 * * * *' },
-  { label: '每30分钟', value: '*/30 * * * *' },
-  { label: '每1小时', value: '0 * * * *' },
-  { label: '每2小时', value: '0 */2 * * *' },
-  { label: '每6小时', value: '0 */6 * * *' },
-  { label: '每12小时', value: '0 */12 * * *' },
-  { label: '每天凌晨0点', value: '0 0 * * *' },
-  { label: '每天凌晨2点', value: '0 2 * * *' },
-  { label: '每天早上8点', value: '0 8 * * *' },
-  { label: '每天中午12点', value: '0 12 * * *' },
-  { label: '每天晚上10点', value: '0 22 * * *' },
-  { label: '每天凌晨2点+晚上10点', value: '0 2,22 * * *' },
-  { label: '每周一凌晨2点', value: '0 2 * * 1' },
-  { label: '每周一和周四凌晨2点', value: '0 2 * * 1,4' },
-  { label: '每月1号凌晨2点', value: '0 2 1 * *' },
-  { label: '每小时（工作日）', value: '0 * * * 1-5' },
-];
 
 interface ScheduleForm {
   id?: number;
@@ -113,7 +297,6 @@ export default function CrawlerPage() {
   const [genres, setGenres] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sources, setSources] = useState<SourceOption[]>([]);
-  const [cronMode, setCronMode] = useState<'preset' | 'custom'>('preset');
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -217,8 +400,6 @@ export default function CrawlerPage() {
       }
     } catch { setSelectedGenres([]); }
     // 判断 Cron 模式
-    const isPreset = CRON_PRESETS.some(p => p.value === schedule.cronExpression);
-    setCronMode(isPreset ? 'preset' : 'custom');
     setEditingId(schedule.id);
     setShowForm(true);
   };
@@ -244,7 +425,6 @@ export default function CrawlerPage() {
     setForm(EMPTY_FORM);
     setEditingId(null);
     setSelectedGenres([]);
-    setCronMode('preset');
     setShowForm(true);
   };
 
@@ -340,20 +520,10 @@ export default function CrawlerPage() {
                   <p className="text-xs text-muted-foreground">已选: {selectedGenres.join('，')}</p>
                 )}
               </div>
-              {/* Cron 编辑器 */}
+              {/* Cron 可视化构建器 */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">定时规则</label>
-                <div className="flex gap-2 mb-2">
-                  <button type="button" onClick={() => setCronMode('preset')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'preset' ? 'bg-emerald-600 text-foreground' : 'bg-muted text-muted-foreground'}`}>预设</button>
-                  <button type="button" onClick={() => setCronMode('custom')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'custom' ? 'bg-emerald-600 text-foreground' : 'bg-muted text-muted-foreground'}`}>自定义</button>
-                </div>
-                {cronMode === 'preset' ? (
-                  <select value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                    {CRON_PRESETS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                ) : (
-                  <input value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} placeholder="0 2 * * *" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm font-mono" />
-                )}
+                <CronBuilder value={form.cronExpression} onChange={v => setForm({...form, cronExpression: v})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
