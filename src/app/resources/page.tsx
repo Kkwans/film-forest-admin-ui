@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, X, Save, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, X, Save, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { resourceApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -75,6 +75,9 @@ export default function ResourcesPage() {
   const [sources, setSources] = useState<SourceSite[]>([]);
   const [editingSource, setEditingSource] = useState<SourceSite | null>(null);
   const [showSourceForm, setShowSourceForm] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ magnet: true, cloud: true, sources: true });
+
+  const toggleSection = (key: string) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   const fetchData = async () => {
     try {
@@ -205,7 +208,7 @@ export default function ResourcesPage() {
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editingSource.enabled ? 'right-0.5' : 'left-0.5'}`} />
                 </button>
               </div>
-              <button onClick={handleSaveSource} disabled={!editingSource.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50 transition-colors">
+              <button onClick={handleSaveSource} disabled={!editingSource.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-foreground text-sm font-medium disabled:opacity-50 transition-colors">
                 保存
               </button>
             </div>
@@ -215,11 +218,15 @@ export default function ResourcesPage() {
 
       {/* Magnet Resource List */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Link2 className="w-5 h-5" /> 磁力资源列表
-          </CardTitle>
+        <CardHeader className="cursor-pointer" onClick={() => toggleSection('magnet')}>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Link2 className="w-5 h-5" /> 磁力资源列表 <span className="text-sm font-normal text-muted-foreground">({magnets.length})</span>
+            </CardTitle>
+            {expandedSections.magnet ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
         </CardHeader>
+        {expandedSections.magnet && (
         <CardContent>
           {loading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
@@ -275,15 +282,20 @@ export default function ResourcesPage() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* Cloud Resource List */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Database className="w-5 h-5" /> 网盘资源列表
-          </CardTitle>
+        <CardHeader className="cursor-pointer" onClick={() => toggleSection('cloud')}>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Database className="w-5 h-5" /> 网盘资源列表 <span className="text-sm font-normal text-muted-foreground">({clouds.length})</span>
+            </CardTitle>
+            {expandedSections.cloud ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
         </CardHeader>
+        {expandedSections.cloud && (
         <CardContent>
           {loading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
@@ -338,6 +350,7 @@ export default function ResourcesPage() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* Resource Sources - Editable */}
@@ -347,7 +360,7 @@ export default function ResourcesPage() {
             <CardTitle className="text-foreground flex items-center gap-2">
               <Link2 className="w-5 h-5" /> 资源来源
             </CardTitle>
-            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-foreground transition-colors">
               <Plus className="w-3 h-3" /> 新增来源
             </button>
           </div>

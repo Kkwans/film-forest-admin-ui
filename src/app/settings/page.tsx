@@ -159,11 +159,11 @@ export default function SettingsPage() {
             <Label className="text-foreground">修改密码</Label>
             <Input type="password" placeholder="新密码" className="bg-background border-border text-foreground" />
           </div>
-          <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => toast.info('密码更新功能需要后端用户认证模块支持，当前版本暂不可用')}>更新密码</Button>
+          <Button className="bg-amber-600 hover:bg-amber-700 text-foreground" onClick={() => toast.info('密码更新功能需要后端用户认证模块支持，当前版本暂不可用')}>更新密码</Button>
         </CardContent>
       </Card>
 
-      <Button onClick={handleSaveAll} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white w-fit">
+      <Button onClick={handleSaveAll} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-foreground w-fit">
         {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> 保存中...</> : '保存全部设置'}
       </Button>
     </div>
