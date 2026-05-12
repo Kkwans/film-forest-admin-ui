@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { Film, Search, Plus, Edit, Trash2, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 
@@ -32,6 +35,8 @@ type FilterType = 'all' | 'movie' | 'drama' | 'variety' | 'anime' | 'short_drama
 type StatusFilter = 'all' | '1' | '0';
 
 export default function ContentPage() {
+  const toast = useToast();
+  const dialog = useDialog();
   const [items, setItems] = useState<ContentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +126,8 @@ export default function ContentPage() {
   };
 
   const handleDelete = async (id: number, type: string) => {
-    if (!confirm('确定删除此内容？')) return;
+    const ok = await dialog.confirm({ title: '删除内容', content: '确定删除此内容？删除后不可恢复。', confirmText: '删除', cancelText: '取消', variant: 'danger' });
+    if (!ok) return;
     try {
       let res;
       switch (type) {
@@ -134,11 +140,12 @@ export default function ContentPage() {
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setItems(items.filter(i => !(i.id === id && i.type === type)));
         setTotal(t => t - 1);
+        toast.success('已删除');
       } else {
-        alert('删除失败');
+        toast.error('删除失败');
       }
     } catch {
-      alert('删除失败');
+      toast.error('删除失败');
     }
   };
 
@@ -157,7 +164,7 @@ export default function ContentPage() {
   };
 
   const handleSaveNew = async () => {
-    if (!editForm.title.trim()) { alert('请输入标题'); return; }
+    if (!editForm.title.trim()) { toast.warning('请输入标题'); return; }
     const data = {
       title: editForm.title,
       year: editForm.year ? Number(editForm.year) : null,
@@ -175,12 +182,13 @@ export default function ContentPage() {
       }
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setCreatingNew(false);
+        toast.success('创建成功');
         fetchItems();
       } else {
-        alert('创建失败');
+        toast.error('创建失败');
       }
     } catch {
-      alert('创建失败');
+      toast.error('创建失败');
     }
   };
 
@@ -191,6 +199,7 @@ export default function ContentPage() {
       year: String(item.year || ''),
       scoreDouban: String(item.scoreDouban || ''),
       status: item.status,
+      type: item.type,
     });
   };
 
@@ -199,8 +208,8 @@ export default function ContentPage() {
     const data = {
       ...editingItem,
       title: editForm.title,
-      year: editForm.year ? Number(editForm.year) : null,
-      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
+      year: editForm.year ? Number(editForm.year) : undefined,
+      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : undefined,
       status: editForm.status,
     };
     try {
@@ -215,11 +224,12 @@ export default function ContentPage() {
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setItems(items.map(i => i.id === editingItem.id && i.type === editingItem.type ? { ...i, ...data } : i));
         setEditingItem(null);
+        toast.success('已保存');
       } else {
-        alert('保存失败');
+        toast.error('保存失败');
       }
     } catch {
-      alert('保存失败');
+      toast.error('保存失败');
     }
   };
 
@@ -237,11 +247,12 @@ export default function ContentPage() {
       }
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setItems(items.map(i => i.id === item.id && i.type === item.type ? { ...i, status: newStatus } : i));
+        toast.success(newStatus === 1 ? '已上线' : '已下线');
       } else {
-        alert('更新状态失败');
+        toast.error('更新状态失败');
       }
     } catch {
-      alert('更新状态失败');
+      toast.error('更新状态失败');
     }
   };
 
@@ -458,128 +469,75 @@ export default function ContentPage() {
       </Card>
 
       {/* Create Modal */}
-      {creatingNew && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCreatingNew(false)}>
-          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">新增内容</h2>
-              <button onClick={() => setCreatingNew(false)} className="p-1 rounded hover:bg-muted">
-                <span className="text-xl">&times;</span>
-              </button>
+      <Modal open={creatingNew} onClose={() => setCreatingNew(false)} title="新增内容" width="md"
+        footer={
+          <>
+            <button onClick={() => setCreatingNew(false)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
+            <button onClick={handleSaveNew} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">创建</button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">内容类型</label>
+            <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
+              <option value="movie">电影</option>
+              <option value="drama">剧集</option>
+              <option value="variety">综艺</option>
+              <option value="anime">动漫</option>
+              <option value="short_drama">短剧</option>
+            </select>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">标题</label>
+            <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} placeholder="输入内容标题" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">年份</label>
+              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} placeholder="2026" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">内容类型</label>
-                <select
-                  value={editForm.type}
-                  onChange={e => setEditForm({...editForm, type: e.target.value as ContentRecord['type']})}
-                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                >
-                  <option value="movie">电影</option>
-                  <option value="drama">剧集</option>
-                  <option value="variety">综艺</option>
-                  <option value="anime">动漫</option>
-                  <option value="short_drama">短剧</option>
-                </select>
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">标题</label>
-                <input
-                  value={editForm.title}
-                  onChange={e => setEditForm({...editForm, title: e.target.value})}
-                  placeholder="输入内容标题"
-                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-foreground">年份</label>
-                  <input
-                    value={editForm.year}
-                    onChange={e => setEditForm({...editForm, year: e.target.value})}
-                    placeholder="2026"
-                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-foreground">豆瓣评分</label>
-                  <input
-                    value={editForm.scoreDouban}
-                    onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})}
-                    placeholder="8.5"
-                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleSaveNew}
-                className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-              >
-                创建
-              </button>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">豆瓣评分</label>
+              <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} placeholder="8.5" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Edit Modal */}
-      {editingItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEditingItem(null)}>
-          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">编辑内容</h2>
-              <button onClick={() => setEditingItem(null)} className="p-1 rounded hover:bg-muted">
-                <span className="text-xl">&times;</span>
-              </button>
+      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="编辑内容" width="md"
+        footer={
+          <>
+            <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
+            <button onClick={handleSaveEdit} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">保存</button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-foreground">标题</label>
+            <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">年份</label>
+              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">标题</label>
-                <input
-                  value={editForm.title}
-                  onChange={e => setEditForm({...editForm, title: e.target.value})}
-                  className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-foreground">年份</label>
-                  <input
-                    value={editForm.year}
-                    onChange={e => setEditForm({...editForm, year: e.target.value})}
-                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-foreground">豆瓣评分</label>
-                  <input
-                    value={editForm.scoreDouban}
-                    onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})}
-                    className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">状态</label>
-                <button
-                  type="button"
-                  onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})}
-                  className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}
-                >
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
-                </button>
-                <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
-              </div>
-              <button
-                onClick={handleSaveEdit}
-                className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-              >
-                保存
-              </button>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">豆瓣评分</label>
+              <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-foreground">状态</label>
+            <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
