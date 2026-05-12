@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
+import { Providers } from "@/components/providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,15 +27,17 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} min-h-full bg-background text-foreground`}>
-        <div className="flex h-screen overflow-hidden">
-          <AdminSidebar />
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <AdminHeader />
-            <main className="flex-1 overflow-y-auto p-4 md:p-6">
-              {children}
-            </main>
+        <Providers>
+          <div className="flex h-screen overflow-hidden">
+            <AdminSidebar />
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <AdminHeader />
+              <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </Providers>
       </body>
     </html>
   );

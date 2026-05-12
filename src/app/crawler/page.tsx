@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { crawlerApi, type CrawlerSchedule } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 
 function formatTime(iso: string | null): string {
@@ -79,6 +81,8 @@ const EMPTY_FORM: ScheduleForm = {
 };
 
 export default function CrawlerPage() {
+  const toast = useToast();
+  const dialog = useDialog();
   const [schedules, setSchedules] = useState<CrawlerSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
@@ -124,21 +128,22 @@ export default function CrawlerPage() {
 
   const handleStart = async (id: number) => {
     setActionId(id);
-    try { await crawlerApi.start(id); await fetchSchedules(); } catch (e) { console.error(e); } finally { setActionId(null); }
+    try { await crawlerApi.start(id); toast.success('爬虫已启动'); await fetchSchedules(); } catch (e) { toast.error('启动失败'); console.error(e); } finally { setActionId(null); }
   };
 
   const handleStop = async (id: number) => {
     setActionId(id);
-    try { await crawlerApi.stop(id); await fetchSchedules(); } catch (e) { console.error(e); } finally { setActionId(null); }
+    try { await crawlerApi.stop(id); toast.success('爬虫已停止'); await fetchSchedules(); } catch (e) { toast.error('停止失败'); console.error(e); } finally { setActionId(null); }
   };
 
   const handleToggle = async (schedule: CrawlerSchedule) => {
-    try { await crawlerApi.toggleEnabled(schedule.id, schedule.enabled !== 1); await fetchSchedules(); } catch (e) { console.error(e); }
+    try { await crawlerApi.toggleEnabled(schedule.id, schedule.enabled !== 1); toast.success(schedule.enabled ? '已禁用' : '已启用'); await fetchSchedules(); } catch (e) { toast.error('操作失败'); console.error(e); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('确定删除此配置？')) return;
-    try { await crawlerApi.deleteSchedule(id); await fetchSchedules(); } catch (e) { console.error(e); }
+    const ok = await dialog.confirm({ title: '删除配置', content: '确定删除此爬虫配置？删除后不可恢复。', confirmText: '删除', cancelText: '取消', variant: 'danger' });
+    if (!ok) return;
+    try { await crawlerApi.deleteSchedule(id); toast.success('已删除'); await fetchSchedules(); } catch (e) { toast.error('删除失败'); console.error(e); }
   };
 
   /** 将 JSON 数组格式的 genreFilter 转为逗号分隔显示 */
@@ -173,11 +178,12 @@ export default function CrawlerPage() {
     setSaving(true);
     try {
       await crawlerApi.saveSchedule(form);
+      toast.success(editingId ? '配置已更新' : '配置已创建');
       setShowForm(false);
       setEditingId(null);
       setForm(EMPTY_FORM);
       await fetchSchedules();
-    } catch (e) { console.error(e); } finally { setSaving(false); }
+    } catch (e) { toast.error('保存失败'); console.error(e); } finally { setSaving(false); }
   };
 
   const handleCreateNew = () => {
