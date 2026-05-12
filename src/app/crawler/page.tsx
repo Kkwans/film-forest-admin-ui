@@ -32,12 +32,22 @@ const PRIORITY_OPTIONS = [
 ];
 
 const CRON_PRESETS = [
+  { label: '每15分钟', value: '*/15 * * * *' },
   { label: '每30分钟', value: '*/30 * * * *' },
   { label: '每1小时', value: '0 * * * *' },
+  { label: '每2小时', value: '0 */2 * * *' },
   { label: '每6小时', value: '0 */6 * * *' },
   { label: '每12小时', value: '0 */12 * * *' },
+  { label: '每天凌晨0点', value: '0 0 * * *' },
   { label: '每天凌晨2点', value: '0 2 * * *' },
+  { label: '每天早上8点', value: '0 8 * * *' },
+  { label: '每天中午12点', value: '0 12 * * *' },
+  { label: '每天晚上10点', value: '0 22 * * *' },
+  { label: '每天凌晨2点+晚上10点', value: '0 2,22 * * *' },
   { label: '每周一凌晨2点', value: '0 2 * * 1' },
+  { label: '每周一和周四凌晨2点', value: '0 2 * * 1,4' },
+  { label: '每月1号凌晨2点', value: '0 2 1 * *' },
+  { label: '每小时（工作日）', value: '0 * * * 1-5' },
 ];
 
 interface ScheduleForm {
@@ -246,7 +256,7 @@ export default function CrawlerPage() {
           <h1 className="text-2xl font-bold text-foreground">爬虫管理</h1>
           <p className="text-sm text-muted-foreground mt-1">配置定时爬虫任务，监控抓取进度</p>
         </div>
-        <button onClick={handleCreateNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+        <button onClick={handleCreateNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-foreground transition-colors">
           <Plus className="w-4 h-4" /> 新建配置
         </button>
       </div>
@@ -262,7 +272,7 @@ export default function CrawlerPage() {
           <div><p className="text-xs text-muted-foreground">运行中</p><p className="text-xl font-bold text-foreground">{stats.running}</p></div>
         </div>
         <div className="flex items-center gap-3 p-4 rounded-lg border bg-card">
-          <Clock className="w-6 h-6 text-zinc-500 opacity-60 shrink-0" />
+          <Clock className="w-6 h-6 text-muted-foreground opacity-60 shrink-0" />
           <div><p className="text-xs text-muted-foreground">空闲</p><p className="text-xl font-bold text-foreground">{stats.idle}</p></div>
         </div>
       </div>
@@ -334,8 +344,8 @@ export default function CrawlerPage() {
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">定时规则</label>
                 <div className="flex gap-2 mb-2">
-                  <button type="button" onClick={() => setCronMode('preset')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'preset' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}>预设</button>
-                  <button type="button" onClick={() => setCronMode('custom')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'custom' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}>自定义</button>
+                  <button type="button" onClick={() => setCronMode('preset')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'preset' ? 'bg-emerald-600 text-foreground' : 'bg-muted text-muted-foreground'}`}>预设</button>
+                  <button type="button" onClick={() => setCronMode('custom')} className={`px-3 py-1 text-xs rounded-lg transition-colors ${cronMode === 'custom' ? 'bg-emerald-600 text-foreground' : 'bg-muted text-muted-foreground'}`}>自定义</button>
                 </div>
                 {cronMode === 'preset' ? (
                   <select value={form.cronExpression} onChange={e => setForm({...form, cronExpression: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
@@ -363,7 +373,7 @@ export default function CrawlerPage() {
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.enabled ? 'right-0.5' : 'left-0.5'}`} />
                 </button>
               </div>
-              <button onClick={handleSave} disabled={saving || !form.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-50 transition-colors">
+              <button onClick={handleSave} disabled={saving || !form.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-foreground text-sm font-medium disabled:opacity-50 transition-colors">
                 {saving ? '保存中...' : '保存配置'}
               </button>
             </div>
