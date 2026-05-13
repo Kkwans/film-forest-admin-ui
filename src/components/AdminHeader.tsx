@@ -21,8 +21,8 @@ export default function AdminHeader() {
           <Bell className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-accent transition-colors">
-          <div className="size-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <User className="w-4 h-4 text-emerald-400" />
+          <div className="size-8 rounded-lg bg-accent flex items-center justify-center">
+            <User className="w-4 h-4 text-muted-foreground" />
           </div>
           <span className="text-sm font-medium text-foreground hidden md:block">
             {user?.nickname || user?.username || '管理员'}
@@ -31,7 +31,7 @@ export default function AdminHeader() {
         <button
           type="button"
           onClick={logout}
-          className="size-8 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center"
+          className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center"
           aria-label="退出登录"
         >
           <LogOut className="w-5 h-5" />
