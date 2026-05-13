@@ -86,7 +86,7 @@ export function Select({
         className={cn(
           'flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-background px-3 transition-colors',
           h, textSize,
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
           open && 'border-emerald-500 ring-1 ring-emerald-500/30'
         )}
       >
@@ -104,11 +104,11 @@ export function Select({
         </span>
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown - z-[10000] to appear above Modal */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute z-[10000] mt-1 w-full rounded-lg border border-border bg-popover shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
           {searchable && (
-            <div className="p-2 border-b border-zinc-800">
+            <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
@@ -116,7 +116,7 @@ export function Select({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="搜索..."
-                  className={cn('w-full pl-8 pr-3 rounded-md border border-zinc-700 bg-zinc-800 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500', size === 'sm' ? 'h-7 text-xs' : 'h-8 text-sm')}
+                  className={cn('w-full pl-8 pr-3 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500', size === 'sm' ? 'h-7 text-xs' : 'h-8 text-sm')}
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export function Select({
                     opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     opt.value === value
                       ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'text-foreground hover:bg-zinc-800'
+                      : 'text-foreground hover:bg-muted'
                   )}
                 >
                   <span className="truncate">{opt.label}</span>
@@ -221,7 +221,7 @@ export function MultiSelect({
         onClick={() => { if (!disabled) { setOpen(!open); setSearch(''); } }}
         className={cn(
           'flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 min-h-9 transition-colors',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
           open && 'border-emerald-500 ring-1 ring-emerald-500/30'
         )}
       >
@@ -255,11 +255,11 @@ export function MultiSelect({
         <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', open && 'rotate-180')} />
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown - z-[10000] to appear above Modal */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute z-[10000] mt-1 w-full rounded-lg border border-border bg-popover shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
           {searchable && (
-            <div className="p-2 border-b border-zinc-800">
+            <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
@@ -267,7 +267,7 @@ export function MultiSelect({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="搜索..."
-                  className="w-full h-8 pl-8 pr-3 rounded-md border border-zinc-700 bg-zinc-800 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500"
+                  className="w-full h-8 pl-8 pr-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -289,7 +289,7 @@ export function MultiSelect({
                       opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                       isSelected
                         ? 'bg-emerald-500/10 text-emerald-400'
-                        : 'text-foreground hover:bg-zinc-800'
+                        : 'text-foreground hover:bg-muted'
                     )}
                   >
                     <span className="truncate">{opt.label}</span>

@@ -56,7 +56,7 @@ export default function StatsPage() {
       <div><h1 className="text-2xl font-bold text-foreground mb-1">数据统计</h1><p className="text-sm text-muted-foreground">内容数据与爬虫运行详细分析</p></div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {contentStats.map((stat, i) => (
           <div key={stat.label} className="relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/10 transition-colors group">
             <div className="text-2xl mb-2">{stat.icon}</div>

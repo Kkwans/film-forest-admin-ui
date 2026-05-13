@@ -7,6 +7,7 @@ import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, X,
 import { resourceApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
+import { Modal } from '@/components/ui/modal';
 
 interface ResourceStats {
   online: number;
@@ -164,7 +165,7 @@ export default function ResourcesPage() {
       </div>
 
       {/* Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: '在线资源', value: stats.online, icon: HardDrive, color: 'text-blue-400' },
           { label: '磁力资源', value: stats.magnet, icon: Link2, color: 'text-emerald-400' },
@@ -186,35 +187,33 @@ export default function ResourcesPage() {
       </div>
 
       {/* Source Edit Modal */}
-      {showSourceForm && editingSource && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSourceForm(false)}>
-          <div className="bg-card border rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground">{editingSource.id > 0 ? '编辑来源' : '新增来源'}</h2>
-              <button onClick={() => setShowSourceForm(false)} className="p-1 rounded hover:bg-muted"><X className="w-5 h-5" /></button>
+      <Modal open={showSourceForm && !!editingSource} onClose={() => { setShowSourceForm(false); setEditingSource(null); }} title={editingSource?.id ? '编辑来源' : '新增来源'} width="sm"
+        footer={
+          <>
+            <button onClick={() => { setShowSourceForm(false); setEditingSource(null); }} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
+            <button onClick={handleSaveSource} disabled={!editingSource?.name.trim()} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-50 transition-colors">保存</button>
+          </>
+        }
+      >
+        {editingSource && (
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">来源名称</label>
+              <input value={editingSource.name} onChange={e => setEditingSource({...editingSource, name: e.target.value})} placeholder="如：七味网" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
             </div>
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">来源名称</label>
-                <input value={editingSource.name} onChange={e => setEditingSource({...editingSource, name: e.target.value})} placeholder="如：七味网" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-foreground">链接地址</label>
-                <input value={editingSource.url} onChange={e => setEditingSource({...editingSource, url: e.target.value})} placeholder="https://..." className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-foreground">启用状态</label>
-                <button type="button" onClick={() => setEditingSource({...editingSource, enabled: !editingSource.enabled})} className={`w-10 h-5 rounded-full relative transition-colors ${editingSource.enabled ? 'bg-emerald-600' : 'bg-muted'}`}>
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editingSource.enabled ? 'right-0.5' : 'left-0.5'}`} />
-                </button>
-              </div>
-              <button onClick={handleSaveSource} disabled={!editingSource.name.trim()} className="w-full h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-foreground text-sm font-medium disabled:opacity-50 transition-colors">
-                保存
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-foreground">链接地址</label>
+              <input value={editingSource.url} onChange={e => setEditingSource({...editingSource, url: e.target.value})} placeholder="https://..." className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-foreground">启用状态</label>
+              <button type="button" onClick={() => setEditingSource({...editingSource, enabled: !editingSource.enabled})} className={`w-10 h-5 rounded-full relative transition-colors ${editingSource.enabled ? 'bg-emerald-600' : 'bg-muted'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editingSource.enabled ? 'right-0.5' : 'left-0.5'}`} />
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Magnet Resource List */}
       <Card className="bg-card border-border">
@@ -372,6 +371,9 @@ export default function ResourcesPage() {
                 <div className="flex items-center gap-3">
                   <span className={`w-2 h-2 rounded-full ${source.enabled ? 'bg-emerald-400' : 'bg-zinc-400 dark:bg-zinc-600'}`} />
                   <span className="text-foreground font-medium">{source.name}</span>
+                  {source.name === '七味网' && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">默认</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {source.url && source.url !== '#' && (

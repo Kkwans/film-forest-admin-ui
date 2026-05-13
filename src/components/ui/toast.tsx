@@ -100,7 +100,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <span className={cn('text-sm flex-1 leading-snug', style.text)}>{t.message}</span>
               <button
                 onClick={() => remove(t.id)}
-                className="p-1 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+                className="p-1 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

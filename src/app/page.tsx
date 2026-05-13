@@ -156,7 +156,7 @@ export default function AdminDashboard() {
             详细统计 <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           {contentStats.map((stat) => {
             const pct = totalContent > 0 ? (stat.value / totalContent * 100) : 0;
             return (
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-muted-foreground'}`} />
                     <span className={`text-xs ${isRunning ? 'text-emerald-400' : 'text-muted-foreground'}`}>
                       {isRunning ? '运行中' : '空闲'}
                     </span>
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-400' },
           { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-emerald-400' },

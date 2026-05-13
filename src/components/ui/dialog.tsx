@@ -23,9 +23,9 @@ const DialogContext = createContext<DialogContextValue | null>(null);
 
 const VARIANT_STYLES = {
   default: {
-    icon: <HelpCircle className="w-6 h-6 text-zinc-400" />,
+    icon: <HelpCircle className="w-6 h-6 text-muted-foreground" />,
     button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    iconBg: 'bg-zinc-800',
+    iconBg: 'bg-muted',
   },
   danger: {
     icon: <AlertTriangle className="w-6 h-6 text-red-400" />,
@@ -87,7 +87,6 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, handleClose]);
 
-  // Lock body scroll when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -104,26 +103,26 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {isOpen && dialog && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => handleClose(false)} />
-          <div className="relative bg-zinc-900 border border-zinc-700/50 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+          <div className="relative bg-popover border border-border rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
             {/* Header */}
             <div className="px-6 pt-6 pb-2 flex items-start gap-4">
               <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', variantStyle.iconBg)}>
                 {variantStyle.icon}
               </div>
               <div className="flex-1 min-w-0">
-                {dialog.title && <h3 className="text-lg font-semibold text-white">{dialog.title}</h3>}
-                <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{dialog.content}</p>
+                {dialog.title && <h3 className="text-lg font-semibold text-foreground">{dialog.title}</h3>}
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{dialog.content}</p>
               </div>
-              <button onClick={() => handleClose(false)} className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors shrink-0">
+              <button onClick={() => handleClose(false)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
             {/* Buttons */}
-            <div className="flex items-center justify-end gap-2 px-6 py-4 bg-zinc-900/50">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 bg-popover/80 backdrop-blur-sm border-t border-border">
               {dialog.cancelText && (
                 <button
                   onClick={() => handleClose(false)}
-                  className="px-4 py-2 text-sm rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  className="px-4 py-2 text-sm rounded-xl border border-border bg-background text-foreground hover:bg-muted transition-colors"
                 >
                   {dialog.cancelText}
                 </button>
