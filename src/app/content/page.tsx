@@ -478,15 +478,15 @@ export default function ContentPage() {
                             {item.scoreDouban}
                           </Badge>
                         ) : (
-                          <span className="text-zinc-600">-</span>
+                          <span className="text-muted-foreground/50">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-zinc-500/15 text-zinc-400 hover:bg-zinc-500/25'}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
                           {item.status === 1 ? '已上线' : '已下线'}
                         </button>
                       </td>
@@ -535,7 +535,7 @@ export default function ContentPage() {
                   {detailItem.scoreDouban && <Badge className="bg-emerald-600/20 text-emerald-400">豆瓣 {detailItem.scoreDouban}</Badge>}
                   {detailItem.scoreImdb && <Badge className="bg-blue-600/20 text-blue-400">IMDb {detailItem.scoreImdb}</Badge>}
                   {detailItem.scoreRt && <Badge className="bg-red-600/20 text-red-400">RT {detailItem.scoreRt}%</Badge>}
-                  <Badge className={detailItem.status === 1 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-zinc-600/20 text-zinc-400'}>
+                  <Badge className={detailItem.status === 1 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
                     {detailItem.status === 1 ? '已上线' : '已下线'}
                   </Badge>
                 </div>
