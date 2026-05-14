@@ -65,10 +65,10 @@ export default function StatsPage() {
             {total > 0 && <p className="text-xs mt-1" style={{ color: COLORS[i] }}>{((stat.value / total) * 100).toFixed(1)}%</p>}
           </div>
         ))}
-        <div className="relative overflow-hidden rounded-xl bg-card border border-emerald-500/20 p-4">
+        <div className="relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4">
           <div className="text-2xl mb-2">📊</div>
-          <p className="text-xs text-emerald-500/70 mb-1">内容总量</p>
-          <p className="text-xl font-bold text-emerald-500">{loading ? '-' : total.toLocaleString()}</p>
+          <p className="text-xs text-primary/70 mb-1">内容总量</p>
+          <p className="text-xl font-bold text-primary">{loading ? '-' : total.toLocaleString()}</p>
         </div>
       </div>
 
@@ -113,9 +113,9 @@ export default function StatsPage() {
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {crawlerStats.schedules.map((s) => { const isRunning = s.status === 'running'; const pct = crawlerStats.totalItems > 0 ? ((s.totalItems || 0) / crawlerStats.totalItems * 100) : 0; return (
             <div key={s.name} className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-foreground/10 transition-colors">
-              <div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} /><span className="text-sm font-medium text-foreground truncate">{s.name}</span></div><span className={`text-xs px-2 py-0.5 rounded-full ${isRunning ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>{isRunning ? '运行中' : '空闲'}</span></div>
+              <div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} /><span className="text-sm font-medium text-foreground truncate">{s.name}</span></div><span className={`text-xs px-2 py-0.5 rounded-full ${isRunning ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{isRunning ? '运行中' : '空闲'}</span></div>
               <div className="grid grid-cols-2 gap-3 mb-3"><div><p className="text-xs text-muted-foreground">运行次数</p><p className="text-lg font-bold text-foreground">{s.totalRuns?.toLocaleString()}</p></div><div><p className="text-xs text-muted-foreground">抓取量</p><p className="text-lg font-bold text-foreground">{s.totalItems?.toLocaleString()}</p></div></div>
-              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} /></div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} /></div>
               <p className="text-xs text-muted-foreground mt-1">占比 {pct.toFixed(1)}%</p>
             </div>
           ); })}
