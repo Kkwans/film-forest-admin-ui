@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
-import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 // ========== Cron 可视化构建器 ==========
 
