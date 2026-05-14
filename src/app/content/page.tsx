@@ -551,8 +551,9 @@ export default function ContentPage() {
               <AlertCircle className="w-4 h-4" /> {error}
             </div>
           )}
-          <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
-            <table className="w-full min-w-[600px]">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">内容</th>
@@ -647,6 +648,67 @@ export default function ContentPage() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-12 h-16 rounded shrink-0" />
+                    <div className="flex-1"><Skeleton className="h-4 w-32 mb-2" /><Skeleton className="h-3 w-20" /></div>
+                  </div>
+                  <div className="flex gap-2"><Skeleton className="h-5 w-16 rounded-full" /><Skeleton className="h-5 w-12 rounded-full" /></div>
+                </div>
+              ))
+            ) : filtered.length === 0 ? (
+              <div className="px-4 py-12 text-center text-muted-foreground">
+                <Inbox className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">暂无内容</p>
+              </div>
+            ) : (
+              filtered.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={item.posterUrl || `https://picsum.photos/seed/${item.type}${item.id}/100/150`}
+                      alt={item.title}
+                      className="w-12 h-16 object-cover rounded shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${item.type}${item.id}/100/150`; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">{TYPE_ICON_EMOJI[item.type]} {TYPE_LABELS[item.type]}</span>
+                        {item.year && <span className="text-xs text-muted-foreground">{item.year}</span>}
+                        {item.scoreDouban && (
+                          <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">{item.scoreDouban}</Badge>
+                        )}
+                        <button
+                          onClick={() => handleToggleStatus(item)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                          {item.status === 1 ? '已上线' : '已下线'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{item.createdAt?.slice(0, 10)}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => setDetailItem(item)} className="p-2 rounded hover:bg-muted text-muted-foreground" title="详情">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleEditClick(item)} className="p-2 rounded hover:bg-muted text-muted-foreground" title="编辑">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(item.id, item.type)} className="p-2 rounded hover:bg-destructive/20 text-destructive" title="删除">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
