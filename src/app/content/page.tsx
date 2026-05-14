@@ -13,6 +13,184 @@ import { contentApi } from '@/lib/api';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// ========== 类型分发工具 ==========
+
+/** 根据内容类型分发 API 调用 */
+function dispatchByType<T>(
+  type: ContentRecord['type'],
+  handlers: {
+    movie: () => T;
+    drama: () => T;
+    variety: () => T;
+    anime: () => T;
+    short_drama: () => T;
+  }
+): T {
+  return handlers[type]();
+}
+
+// ========== 表单类型定义 ==========
+
+interface EditForm {
+  title: string;
+  year: string;
+  scoreDouban: string;
+  scoreImdb: string;
+  scoreRt: string;
+  genre: string;
+  region: string;
+  language: string;
+  director: string;
+  writer: string;
+  actor: string;
+  storyline: string;
+  duration: string;
+  releaseDate: string;
+  alias: string;
+  status: number;
+  type: ContentRecord['type'];
+}
+
+const EMPTY_FORM: EditForm = {
+  title: '', year: '', scoreDouban: '', scoreImdb: '', scoreRt: '',
+  genre: '', region: '', language: '', director: '', writer: '',
+  actor: '', storyline: '', duration: '', releaseDate: '', alias: '',
+  status: 1, type: 'movie',
+};
+
+const TYPE_OPTIONS = [
+  { label: '电影', value: 'movie' },
+  { label: '剧集', value: 'drama' },
+  { label: '综艺', value: 'variety' },
+  { label: '动漫', value: 'anime' },
+  { label: '短剧', value: 'short_drama' },
+];
+
+/** 解析 JSON 数组为逗号分隔字符串 */
+function parseJsonArray(json: string | undefined): string {
+  if (!json) return '';
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr.join('，') : json;
+  } catch { return json; }
+}
+
+/** 从表单数据构建提交用的数据对象 */
+function buildSubmitData(form: EditForm) {
+  const parseArr = (v: string) =>
+    v ? JSON.stringify(v.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null;
+  return {
+    title: form.title,
+    year: form.year ? Number(form.year) : null,
+    scoreDouban: form.scoreDouban ? Number(form.scoreDouban) : null,
+    scoreImdb: form.scoreImdb ? Number(form.scoreImdb) : null,
+    scoreRt: form.scoreRt ? Number(form.scoreRt) : null,
+    genre: parseArr(form.genre),
+    region: parseArr(form.region),
+    language: parseArr(form.language),
+    director: parseArr(form.director),
+    writer: parseArr(form.writer),
+    actor: parseArr(form.actor),
+    storyline: form.storyline || null,
+    duration: form.duration ? Number(form.duration) : null,
+    releaseDate: form.releaseDate || null,
+    alias: parseArr(form.alias),
+    status: form.status,
+  };
+}
+
+// ========== 表单字段组件 ==========
+
+function ContentFormFields({ form, onChange, showStatus = false }: {
+  form: EditForm;
+  onChange: (form: EditForm) => void;
+  showStatus?: boolean;
+}) {
+  return (
+    <div className="space-y-4 py-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="内容类型">
+          <Select value={form.type} onChange={v => onChange({ ...form, type: v as ContentRecord['type'] })} options={TYPE_OPTIONS} />
+        </Field>
+        <Field label="年份">
+          <input value={form.year} onChange={e => onChange({ ...form, year: e.target.value })} placeholder="2026" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      <Field label="标题">
+        <input value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="豆瓣评分">
+          <input value={form.scoreDouban} onChange={e => onChange({ ...form, scoreDouban: e.target.value })} placeholder="8.5" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+        <Field label="类型（逗号分隔）">
+          <input value={form.genre} onChange={e => onChange({ ...form, genre: e.target.value })} placeholder="剧情，喜剧" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="地区（逗号分隔）">
+          <input value={form.region} onChange={e => onChange({ ...form, region: e.target.value })} placeholder="中国大陆" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+        <Field label="导演（逗号分隔）">
+          <input value={form.director} onChange={e => onChange({ ...form, director: e.target.value })} placeholder="张三" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      <Field label="演员（逗号分隔）">
+        <input value={form.actor} onChange={e => onChange({ ...form, actor: e.target.value })} placeholder="演员A，演员B" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="语言（逗号分隔）">
+          <input value={form.language} onChange={e => onChange({ ...form, language: e.target.value })} placeholder="英语，汉语" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+        <Field label="编剧（逗号分隔）">
+          <input value={form.writer} onChange={e => onChange({ ...form, writer: e.target.value })} placeholder="编剧A" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      {showStatus && (
+        <Field label="状态">
+          <div className="flex items-center gap-2 h-9">
+            <button type="button" onClick={() => onChange({ ...form, status: form.status === 1 ? 0 : 1 })} className={`w-10 h-5 rounded-full relative transition-colors ${form.status === 1 ? 'bg-primary' : 'bg-muted'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm text-muted-foreground">{form.status === 1 ? '已上线' : '已下线'}</span>
+          </div>
+        </Field>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="时长（分钟）">
+          <input value={form.duration} onChange={e => onChange({ ...form, duration: e.target.value })} placeholder="120" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+        <Field label="上映日期">
+          <input value={form.releaseDate} onChange={e => onChange({ ...form, releaseDate: e.target.value })} placeholder="2026-03-20" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="IMDb 评分">
+          <input value={form.scoreImdb} onChange={e => onChange({ ...form, scoreImdb: e.target.value })} placeholder="8.3" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+        <Field label="RT 评分（%）">
+          <input value={form.scoreRt} onChange={e => onChange({ ...form, scoreRt: e.target.value })} placeholder="95" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+        </Field>
+      </div>
+      <Field label="又名（逗号分隔）">
+        <input value={form.alias} onChange={e => onChange({ ...form, alias: e.target.value })} placeholder="极限返航，末日圣母号" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
+      </Field>
+      <Field label="剧情简介">
+        <textarea value={form.storyline} onChange={e => onChange({ ...form, storyline: e.target.value })} rows={3} className="px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none" />
+      </Field>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-2">
+      <label className="text-sm font-medium text-foreground">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 interface ContentRecord {
   id: number;
   title: string;
@@ -41,8 +219,8 @@ const TYPE_LABELS: Record<string, string> = {
   movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧'
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  movie: 'text-muted-foreground', drama: 'text-muted-foreground', variety: 'text-muted-foreground', anime: 'text-destructive', short_drama: 'text-primary'
+const TYPE_ICON_EMOJI: Record<string, string> = {
+  movie: '🎬', drama: '📺', variety: '🎤', anime: '🎯', short_drama: '⚡'
 };
 
 type FilterType = 'all' | 'movie' | 'drama' | 'variety' | 'anime' | 'short_drama';
@@ -139,18 +317,17 @@ export default function ContentPage() {
     short_drama: stats.shortDramas,
   };
 
-  const handleDelete = async (id: number, type: string) => {
+  const handleDelete = async (id: number, type: ContentRecord['type']) => {
     const ok = await dialog.confirm({ title: '删除内容', content: '确定删除此内容？删除后不可恢复。', confirmText: '删除', cancelText: '取消', variant: 'danger' });
     if (!ok) return;
     try {
-      let res;
-      switch (type) {
-        case 'movie': res = await contentApi.deleteMovie(id); break;
-        case 'drama': res = await contentApi.deleteDrama(id); break;
-        case 'variety': res = await contentApi.deleteVariety(id); break;
-        case 'anime': res = await contentApi.deleteAnime(id); break;
-        case 'short_drama': res = await contentApi.deleteShortDrama(id); break;
-      }
+      const res = await dispatchByType(type, {
+        movie: () => contentApi.deleteMovie(id),
+        drama: () => contentApi.deleteDrama(id),
+        variety: () => contentApi.deleteVariety(id),
+        anime: () => contentApi.deleteAnime(id),
+        short_drama: () => contentApi.deleteShortDrama(id),
+      });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setItems(items.filter(i => !(i.id === id && i.type === type)));
         setTotal(t => t - 1);
@@ -171,42 +348,24 @@ export default function ContentPage() {
   const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [detailItem, setDetailItem] = useState<ContentRecord | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', year: '', scoreDouban: '', scoreImdb: '', scoreRt: '', genre: '', region: '', language: '', director: '', writer: '', actor: '', storyline: '', duration: '', releaseDate: '', alias: '', status: 1, type: 'movie' as ContentRecord['type'] });
+  const [editForm, setEditForm] = useState<EditForm>(EMPTY_FORM);
 
   const handleCreateNew = () => {
     setCreatingNew(true);
-    setEditForm({ title: '', year: '', scoreDouban: '', scoreImdb: '', scoreRt: '', genre: '', region: '', language: '', director: '', writer: '', actor: '', storyline: '', duration: '', releaseDate: '', alias: '', status: 1, type: 'movie' });
+    setEditForm(EMPTY_FORM);
   };
 
   const handleSaveNew = async () => {
     if (!editForm.title.trim()) { toast.warning('请输入标题'); return; }
-    const data = {
-      title: editForm.title,
-      year: editForm.year ? Number(editForm.year) : null,
-      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : null,
-      scoreImdb: editForm.scoreImdb ? Number(editForm.scoreImdb) : null,
-      scoreRt: editForm.scoreRt ? Number(editForm.scoreRt) : null,
-      genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      language: editForm.language ? JSON.stringify(editForm.language.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      writer: editForm.writer ? JSON.stringify(editForm.writer.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      storyline: editForm.storyline || null,
-      duration: editForm.duration ? Number(editForm.duration) : null,
-      releaseDate: editForm.releaseDate || null,
-      alias: editForm.alias ? JSON.stringify(editForm.alias.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null,
-      status: editForm.status,
-    };
+    const data = buildSubmitData(editForm);
     try {
-      let res;
-      switch (editForm.type) {
-        case 'movie': res = await contentApi.createMovie(data); break;
-        case 'drama': res = await contentApi.createDrama(data); break;
-        case 'variety': res = await contentApi.createVariety(data); break;
-        case 'anime': res = await contentApi.createAnime(data); break;
-        case 'short_drama': res = await contentApi.createShortDrama(data); break;
-      }
+      const res = await dispatchByType(editForm.type, {
+        movie: () => contentApi.createMovie(data),
+        drama: () => contentApi.createDrama(data),
+        variety: () => contentApi.createVariety(data),
+        anime: () => contentApi.createAnime(data),
+        short_drama: () => contentApi.createShortDrama(data),
+      });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setCreatingNew(false);
         toast.success('创建成功');
@@ -242,45 +401,17 @@ export default function ContentPage() {
     });
   };
 
-  /** 解析 JSON 数组为逗号分隔字符串 */
-  function parseJsonArray(json: string | undefined): string {
-    if (!json) return '';
-    try {
-      const arr = JSON.parse(json);
-      return Array.isArray(arr) ? arr.join('，') : json;
-    } catch { return json; }
-  }
-
   const handleSaveEdit = async () => {
     if (!editingItem) return;
-    const data = {
-      ...editingItem,
-      title: editForm.title,
-      year: editForm.year ? Number(editForm.year) : undefined,
-      scoreDouban: editForm.scoreDouban ? Number(editForm.scoreDouban) : undefined,
-      scoreImdb: editForm.scoreImdb ? Number(editForm.scoreImdb) : undefined,
-      scoreRt: editForm.scoreRt ? Number(editForm.scoreRt) : undefined,
-      genre: editForm.genre ? JSON.stringify(editForm.genre.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      region: editForm.region ? JSON.stringify(editForm.region.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      language: editForm.language ? JSON.stringify(editForm.language.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      director: editForm.director ? JSON.stringify(editForm.director.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      writer: editForm.writer ? JSON.stringify(editForm.writer.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      actor: editForm.actor ? JSON.stringify(editForm.actor.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      storyline: editForm.storyline || undefined,
-      duration: editForm.duration ? Number(editForm.duration) : undefined,
-      releaseDate: editForm.releaseDate || undefined,
-      alias: editForm.alias ? JSON.stringify(editForm.alias.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : undefined,
-      status: editForm.status,
-    };
+    const data = { ...editingItem, ...buildSubmitData(editForm) };
     try {
-      let res;
-      switch (editingItem.type) {
-        case 'movie': res = await contentApi.updateMovie(editingItem.id, data); break;
-        case 'drama': res = await contentApi.updateDrama(editingItem.id, data); break;
-        case 'variety': res = await contentApi.updateVariety(editingItem.id, data); break;
-        case 'anime': res = await contentApi.updateAnime(editingItem.id, data); break;
-        case 'short_drama': res = await contentApi.updateShortDrama(editingItem.id, data); break;
-      }
+      const res = await dispatchByType(editingItem.type, {
+        movie: () => contentApi.updateMovie(editingItem.id, data),
+        drama: () => contentApi.updateDrama(editingItem.id, data),
+        variety: () => contentApi.updateVariety(editingItem.id, data),
+        anime: () => contentApi.updateAnime(editingItem.id, data),
+        short_drama: () => contentApi.updateShortDrama(editingItem.id, data),
+      });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setEditingItem(null);
         toast.success('已保存');
@@ -295,16 +426,15 @@ export default function ContentPage() {
 
   const handleToggleStatus = async (item: ContentRecord) => {
     const newStatus = item.status === 1 ? 0 : 1;
+    const data = { ...item, status: newStatus };
     try {
-      let res;
-      const data = { ...item, status: newStatus };
-      switch (item.type) {
-        case 'movie': res = await contentApi.updateMovie(item.id, data); break;
-        case 'drama': res = await contentApi.updateDrama(item.id, data); break;
-        case 'variety': res = await contentApi.updateVariety(item.id, data); break;
-        case 'anime': res = await contentApi.updateAnime(item.id, data); break;
-        case 'short_drama': res = await contentApi.updateShortDrama(item.id, data); break;
-      }
+      const res = await dispatchByType(item.type, {
+        movie: () => contentApi.updateMovie(item.id, data),
+        drama: () => contentApi.updateDrama(item.id, data),
+        variety: () => contentApi.updateVariety(item.id, data),
+        anime: () => contentApi.updateAnime(item.id, data),
+        short_drama: () => contentApi.updateShortDrama(item.id, data),
+      });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         toast.success(newStatus === 1 ? '已上线' : '已下线');
         fetchItems();
@@ -470,8 +600,8 @@ export default function ContentPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm font-medium ${TYPE_COLORS[item.type] || 'text-muted-foreground'}`}>
-                          {TYPE_LABELS[item.type] || item.type}
+                        <span className="text-sm font-medium text-foreground">
+                          {TYPE_ICON_EMOJI[item.type] || ''} {TYPE_LABELS[item.type] || item.type}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
@@ -579,84 +709,7 @@ export default function ContentPage() {
           </>
         }
       >
-        <div className="space-y-4 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">内容类型</label>
-              <Select value={editForm.type} onChange={v => setEditForm({...editForm, type: v as ContentRecord['type']})} options={[{ label: '电影', value: 'movie' }, { label: '剧集', value: 'drama' }, { label: '综艺', value: 'variety' }, { label: '动漫', value: 'anime' }, { label: '短剧', value: 'short_drama' }]} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">年份</label>
-              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} placeholder="2026" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">标题</label>
-            <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} placeholder="输入内容标题" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">豆瓣评分</label>
-              <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} placeholder="8.5" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">类型（逗号分隔）</label>
-              <input value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} placeholder="剧情，喜剧" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">地区（逗号分隔）</label>
-              <input value={editForm.region} onChange={e => setEditForm({...editForm, region: e.target.value})} placeholder="中国大陆" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">导演（逗号分隔）</label>
-              <input value={editForm.director} onChange={e => setEditForm({...editForm, director: e.target.value})} placeholder="张三" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">演员（逗号分隔）</label>
-            <input value={editForm.actor} onChange={e => setEditForm({...editForm, actor: e.target.value})} placeholder="演员A，演员B" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">语言（逗号分隔）</label>
-              <input value={editForm.language} onChange={e => setEditForm({...editForm, language: e.target.value})} placeholder="英语，汉语" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">编剧（逗号分隔）</label>
-              <input value={editForm.writer} onChange={e => setEditForm({...editForm, writer: e.target.value})} placeholder="编剧A" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">时长（分钟）</label>
-              <input value={editForm.duration} onChange={e => setEditForm({...editForm, duration: e.target.value})} placeholder="120" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">上映日期</label>
-              <input value={editForm.releaseDate} onChange={e => setEditForm({...editForm, releaseDate: e.target.value})} placeholder="2026-03-20" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">IMDb 评分</label>
-              <input value={editForm.scoreImdb} onChange={e => setEditForm({...editForm, scoreImdb: e.target.value})} placeholder="8.3" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">RT 评分（%）</label>
-              <input value={editForm.scoreRt} onChange={e => setEditForm({...editForm, scoreRt: e.target.value})} placeholder="95" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">又名（逗号分隔）</label>
-            <input value={editForm.alias} onChange={e => setEditForm({...editForm, alias: e.target.value})} placeholder="极限返航，末日圣母号" className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">剧情简介</label>
-            <textarea value={editForm.storyline} onChange={e => setEditForm({...editForm, storyline: e.target.value})} rows={3} className="px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none" />
-          </div>
-        </div>
+        <ContentFormFields form={editForm} onChange={setEditForm} />
       </Modal>
 
       {/* Edit Modal */}
@@ -668,95 +721,7 @@ export default function ContentPage() {
           </>
         }
       >
-        <div className="space-y-4 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">内容类型</label>
-              <Select value={editForm.type} onChange={v => setEditForm({...editForm, type: v as ContentRecord['type']})} options={[{ label: '电影', value: 'movie' }, { label: '剧集', value: 'drama' }, { label: '综艺', value: 'variety' }, { label: '动漫', value: 'anime' }, { label: '短剧', value: 'short_drama' }]} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">年份</label>
-              <input value={editForm.year} onChange={e => setEditForm({...editForm, year: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">标题</label>
-            <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">豆瓣评分</label>
-              <input value={editForm.scoreDouban} onChange={e => setEditForm({...editForm, scoreDouban: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">类型（逗号分隔）</label>
-              <input value={editForm.genre} onChange={e => setEditForm({...editForm, genre: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">地区（逗号分隔）</label>
-              <input value={editForm.region} onChange={e => setEditForm({...editForm, region: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">导演（逗号分隔）</label>
-              <input value={editForm.director} onChange={e => setEditForm({...editForm, director: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">演员（逗号分隔）</label>
-              <input value={editForm.actor} onChange={e => setEditForm({...editForm, actor: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">状态</label>
-              <div className="flex items-center gap-2 h-9">
-                <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-primary' : 'bg-muted'}`}>
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
-                </button>
-                <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">语言（逗号分隔）</label>
-              <input value={editForm.language} onChange={e => setEditForm({...editForm, language: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">编剧（逗号分隔）</label>
-              <input value={editForm.writer} onChange={e => setEditForm({...editForm, writer: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">时长（分钟）</label>
-              <input value={editForm.duration} onChange={e => setEditForm({...editForm, duration: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">上映日期</label>
-              <input value={editForm.releaseDate} onChange={e => setEditForm({...editForm, releaseDate: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">IMDb 评分</label>
-              <input value={editForm.scoreImdb} onChange={e => setEditForm({...editForm, scoreImdb: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">RT 评分（%）</label>
-              <input value={editForm.scoreRt} onChange={e => setEditForm({...editForm, scoreRt: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">又名（逗号分隔）</label>
-            <input value={editForm.alias} onChange={e => setEditForm({...editForm, alias: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm" />
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">剧情简介</label>
-            <textarea value={editForm.storyline} onChange={e => setEditForm({...editForm, storyline: e.target.value})} rows={3} className="px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none" />
-          </div>
-        </div>
+        <ContentFormFields form={editForm} onChange={setEditForm} showStatus />
       </Modal>
     </div>
   );
