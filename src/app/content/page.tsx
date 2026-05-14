@@ -580,6 +580,7 @@ export default function ContentPage() {
                             src={item.posterUrl || `https://picsum.photos/seed/${item.type}${item.id}/100/150`}
                             alt={item.title}
                             className="w-10 h-14 object-cover rounded"
+                            loading="lazy"
                             onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${item.type}${item.id}/100/150`; }}
                           />
                           <div>
@@ -662,6 +663,7 @@ export default function ContentPage() {
                       src={item.posterUrl || `https://picsum.photos/seed/${item.type}${item.id}/100/150`}
                       alt={item.title}
                       className="w-12 h-16 object-cover rounded shrink-0"
+                      loading="lazy"
                       onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${item.type}${item.id}/100/150`; }}
                     />
                     <div className="flex-1 min-w-0">
@@ -724,6 +726,7 @@ export default function ContentPage() {
                 src={detailItem.posterUrl || `https://picsum.photos/seed/${detailItem.type}${detailItem.id}/200/300`}
                 alt={detailItem.title}
                 className="w-32 h-44 object-cover rounded-lg"
+                loading="lazy"
                 onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${detailItem.type}${detailItem.id}/200/300`; }}
               />
               <div className="flex-1 space-y-2">
