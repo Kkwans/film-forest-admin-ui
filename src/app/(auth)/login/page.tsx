@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Film, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 export default function LoginPage() {
   const router = useRouter();
+  const toast = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   // 已登录则跳转首页
@@ -30,12 +31,11 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('请输入用户名和密码');
+      toast.warning('请输入用户名和密码');
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -49,12 +49,13 @@ export default function LoginPage() {
       if (data.code === 200) {
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(data.data.user));
+        toast.success('登录成功');
         router.push('/');
       } else {
-        setError(data.message || '登录失败');
+        toast.error(data.message || '登录失败');
       }
     } catch {
-      setError('网络错误，请重试');
+      toast.error('网络错误，请重试');
     } finally {
       setLoading(false);
     }
@@ -113,12 +114,6 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
 
           <button
             type="submit"
