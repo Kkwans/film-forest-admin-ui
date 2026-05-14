@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, Activity, Database } from 'lucide-react';
+import { BarChart3, Activity, Database, Inbox } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface Stats { movies: number; dramas: number; varieties: number; animes: number; shortDramas: number; }
@@ -15,6 +17,7 @@ export default function StatsPage() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
   const [crawlerStats, setCrawlerStats] = useState<CrawlerStats>({ total: 0, running: 0, idle: 0, totalRuns: 0, totalItems: 0, schedules: [] });
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,7 +29,10 @@ export default function StatsPage() {
           const schedules = d.schedules || [];
           setCrawlerStats({ total: d.total || 0, running: d.running || 0, idle: d.idle || 0, totalRuns: schedules.reduce((s: number, x: any) => s + (x.totalRuns || 0), 0), totalItems: schedules.reduce((s: number, x: any) => s + (x.totalItems || 0), 0), schedules });
         }
-      } catch (e) { console.error(e); } finally { setLoading(false); }
+      } catch (e) {
+        console.error(e);
+        toast.error('统计数据加载失败');
+      } finally { setLoading(false); }
     };
     fetchStats();
   }, []);
@@ -61,14 +67,14 @@ export default function StatsPage() {
           <div key={stat.label} className="relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/10 transition-colors group">
             <div className="text-2xl mb-2">{stat.icon}</div>
             <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-            <p className="text-xl font-bold text-foreground">{loading ? '-' : stat.value.toLocaleString()}</p>
+            <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : stat.value.toLocaleString()}</p>
             {total > 0 && <p className="text-xs mt-1" style={{ color: COLORS[i] }}>{((stat.value / total) * 100).toFixed(1)}%</p>}
           </div>
         ))}
         <div className="relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4">
           <div className="text-2xl mb-2">📊</div>
           <p className="text-xs text-primary/70 mb-1">内容总量</p>
-          <p className="text-xl font-bold text-primary">{loading ? '-' : total.toLocaleString()}</p>
+          <p className="text-xl font-bold text-primary">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
         </div>
       </div>
 
@@ -78,8 +84,8 @@ export default function StatsPage() {
         <div className="rounded-xl bg-card border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><BarChart3 className="w-4 h-4 text-muted-foreground" /> 内容分布</h3></div>
           <div className="p-5 flex flex-col items-center">
-            {loading ? <div className="h-64 flex items-center justify-center text-muted-foreground">加载中...</div>
-            : pieData.length === 0 ? <div className="h-64 flex items-center justify-center text-muted-foreground">暂无数据</div>
+            {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-48 h-48 rounded-full" /></div>
+            : pieData.length === 0 ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无数据</p></div>
             : (<><ResponsiveContainer width="100%" height={260}><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">{pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip content={<CustomTooltip />} /></PieChart></ResponsiveContainer><div className="flex flex-wrap justify-center gap-4 mt-2">{pieData.map((d, i) => <div key={d.name} className="flex items-center gap-2 text-sm"><span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }} /><span className="text-muted-foreground">{d.name}</span><span className="text-foreground font-medium">{d.value}</span></div>)}</div></>)}
           </div>
         </div>
@@ -87,8 +93,8 @@ export default function StatsPage() {
         <div className="rounded-xl bg-card border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫运行统计</h3></div>
           <div className="p-5">
-            {loading ? <div className="h-64 flex items-center justify-center text-muted-foreground">加载中...</div>
-            : barData.length === 0 ? <div className="h-64 flex items-center justify-center text-muted-foreground">暂无爬虫配置</div>
+            {loading ? <div className="h-64 flex items-center justify-center"><div className="flex items-end gap-3 h-48">{[60, 100, 80, 120, 70].map((h, i) => <Skeleton key={i} className="w-12 rounded-t" style={{ height: `${h}px` }} />)}</div></div>
+            : barData.length === 0 ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无爬虫配置</p></div>
             : (<ResponsiveContainer width="100%" height={260}><BarChart data={barData} barGap={8}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} /><YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--foreground)' }} /><Bar dataKey="runs" name="运行次数" fill="#3B82F6" radius={[4, 4, 0, 0]} /><Bar dataKey="items" name="抓取量" fill="#10B981" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>)}
           </div>
         </div>
@@ -98,7 +104,7 @@ export default function StatsPage() {
       <div className="rounded-xl bg-card border border-border overflow-hidden">
         <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Database className="w-4 h-4 text-muted-foreground" /> 内容占比详情</h3></div>
         <div className="p-5">
-          <div className="text-3xl font-bold text-foreground mb-6">{loading ? '-' : total.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">内容总量</span></div>
+          <div className="text-3xl font-bold text-foreground mb-6">{loading ? <Skeleton className="h-8 w-24 inline-block" /> : total.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">内容总量</span></div>
           <div className="space-y-4">
             {total > 0 && contentStats.map((stat, i) => { const pct = (stat.value / total) * 100; return (
               <div key={stat.label}><div className="flex justify-between text-sm mb-2"><div className="flex items-center gap-2"><span className="text-lg">{stat.icon}</span><span className="text-muted-foreground">{stat.label}</span></div><div className="flex items-center gap-2"><span className="text-foreground font-medium">{stat.value.toLocaleString()}</span><span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: COLORS[i] + '20', color: COLORS[i] }}>{pct.toFixed(1)}%</span></div></div><div className="w-full h-2 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: COLORS[i] }} /></div></div>

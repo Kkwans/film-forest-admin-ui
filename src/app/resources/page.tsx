@@ -95,6 +95,7 @@ export default function ResourcesPage() {
       setSources(sourcesRes.data?.data || []);
     } catch (e) {
       console.error('fetch resource data error', e);
+      toast.error('资源数据加载失败');
     } finally {
       setLoading(false);
     }

@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { Film, Search, Plus, Edit, Trash2, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle } from 'lucide-react';
+import { Film, Search, Plus, Edit, Trash2, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle, Inbox } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 import { Select } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ContentRecord {
   id: number;
@@ -434,17 +435,21 @@ export default function ContentPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                      加载中...
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/50">
+                      <td className="px-4 py-3"><div className="flex items-center gap-3"><Skeleton className="w-10 h-14 rounded shrink-0" /><div><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-16" /></div></div></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-10" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-4 w-10" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-8 rounded" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                      <td className="px-4 py-3"><div className="flex items-center gap-2"><Skeleton className="w-7 h-7 rounded" /><Skeleton className="w-7 h-7 rounded" /><Skeleton className="w-7 h-7 rounded" /></div></td>
+                    </tr>
+                  ))
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                      <Film className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>暂无内容</p>
+                      <Inbox className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                      <p className="text-sm">暂无内容</p>
                     </td>
                   </tr>
                 ) : (

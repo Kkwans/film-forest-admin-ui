@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap } from 'lucide-react';
+import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Stats {
   movies: number;
@@ -47,6 +49,7 @@ export default function AdminDashboard() {
   const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const toast = useToast();
 
   const fetchData = async () => {
     try {
@@ -68,6 +71,7 @@ export default function AdminDashboard() {
       setLastRefresh(new Date());
     } catch (e) {
       console.error('fetch dashboard data error', e);
+      toast.error('数据加载失败，请检查后端服务');
     } finally {
       setLoading(false);
     }
@@ -143,7 +147,7 @@ export default function AdminDashboard() {
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground transition-colors" />
             </div>
             <p className="text-xs text-muted-foreground mb-0.5">{stat.label}</p>
-            <p className="text-2xl font-bold text-foreground">{loading ? '-' : stat.value.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{loading ? <Skeleton className="h-7 w-16" /> : stat.value.toLocaleString()}</p>
           </Link>
         ))}
       </div>
@@ -164,7 +168,7 @@ export default function AdminDashboard() {
                 <div className={`w-10 h-10 mx-auto rounded-lg ${stat.bgColor} flex items-center justify-center text-lg mb-2`}>
                   {stat.icon}
                 </div>
-                <p className="text-lg font-bold text-foreground">{loading ? '-' : stat.value.toLocaleString()}</p>
+                <p className="text-lg font-bold text-foreground">{loading ? <Skeleton className="h-5 w-12" /> : stat.value.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
                 {!loading && totalContent > 0 && (
                   <p className={`text-xs mt-1 ${stat.color}`}>{pct.toFixed(1)}%</p>
@@ -188,9 +192,24 @@ export default function AdminDashboard() {
           </div>
           <div className="divide-y divide-border/50">
             {loading ? (
-              <div className="px-5 py-10 text-center text-muted-foreground text-sm">加载中...</div>
+              <div className="divide-y divide-border/50">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3">
+                    <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                ))}
+              </div>
             ) : recentItems.length === 0 ? (
-              <div className="px-5 py-10 text-center text-muted-foreground text-sm">暂无内容</div>
+              <div className="px-5 py-10 text-center text-muted-foreground">
+                <Inbox className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">暂无内容</p>
+                <Link href="/content" className="text-xs text-primary hover:underline mt-1 inline-block">去添加内容 →</Link>
+              </div>
             ) : recentItems.map((item, i) => (
               <div key={`${item.type}-${item.id}-${i}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
                 <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm shrink-0">
@@ -228,9 +247,24 @@ export default function AdminDashboard() {
           </div>
           <div className="divide-y divide-border/50">
             {loading ? (
-              <div className="px-5 py-10 text-center text-muted-foreground text-sm">加载中...</div>
+              <div className="divide-y divide-border/50">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-5 py-3">
+                    <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-28 mb-1" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                    <Skeleton className="w-2 h-2 rounded-full" />
+                  </div>
+                ))}
+              </div>
             ) : crawlerStatus.length === 0 ? (
-              <div className="px-5 py-10 text-center text-muted-foreground text-sm">暂无爬虫配置</div>
+              <div className="px-5 py-10 text-center text-muted-foreground">
+                <Activity className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">暂无爬虫配置</p>
+                <Link href="/crawler" className="text-xs text-primary hover:underline mt-1 inline-block">去创建爬虫 →</Link>
+              </div>
             ) : crawlerStatus.map((task) => {
               const isRunning = task.status === 'running';
               return (

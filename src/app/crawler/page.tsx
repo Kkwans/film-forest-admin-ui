@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
-import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, X, Save, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 // ========== Cron 可视化构建器 ==========
 
@@ -567,7 +567,7 @@ export default function CrawlerPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">加载中...</td></tr>
+                <tr><td colSpan={9} className="p-8 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-1" /><span className="text-sm">加载中...</span></td></tr>
               ) : schedules.length === 0 ? (
                 <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">暂无配置，点击"新建配置"开始</td></tr>
               ) : schedules.map((s) => {
@@ -619,7 +619,7 @@ export default function CrawlerPage() {
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
           {loading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
+            <div className="p-8 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-1" /><span className="text-sm">加载中...</span></div>
           ) : schedules.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">暂无配置，点击"新建配置"开始</div>
           ) : schedules.map((s) => {
