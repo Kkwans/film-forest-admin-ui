@@ -12,6 +12,7 @@ import { Search, Plus, Edit, Trash2, Eye, AlertCircle, Inbox } from 'lucide-reac
 import { contentApi } from '@/lib/api';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import Pagination from '@/components/Pagination';
 
 // ========== 类型分发工具 ==========
 
@@ -238,20 +239,24 @@ export default function ContentPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 20;
+  const [allItems, setAllItems] = useState<ContentRecord[]>([]); // typeFilter='all' 时的全量数据
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      let records: ContentRecord[] = [];
-      let totalCount = 0;
       const types: FilterType[] = typeFilter === 'all'
         ? ['movie', 'drama', 'variety', 'anime', 'short_drama']
         : [typeFilter];
 
+      const isAllTypes = typeFilter === 'all';
+      // typeFilter='all' 时拉取全量数据做客户端分页，避免各类型各取一页导致数据错乱
+      const fetchSize = isAllTypes ? 200 : pageSize;
+      const fetchPage = isAllTypes ? 1 : page;
+
       const results = await Promise.allSettled(
         types.map(t => {
-          const params: any = { page, size: pageSize };
+          const params: any = { page: fetchPage, size: fetchSize };
           if (keyword) params.keyword = keyword;
           switch (t) {
             case 'movie': return contentApi.listMovies(params);
@@ -263,6 +268,8 @@ export default function ContentPage() {
         })
       );
 
+      let records: ContentRecord[] = [];
+      let totalCount = 0;
       let idx = 0;
       for (const result of results) {
         if (result.status === 'fulfilled' && result.value) {
@@ -282,19 +289,36 @@ export default function ContentPage() {
       // Filter by status
       if (statusFilter !== 'all') {
         records = records.filter(i => String(i.status) === statusFilter);
+        if (isAllTypes) totalCount = records.length;
       }
 
       // Sort by createdAt desc
       records.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      setItems(records);
-      setTotal(totalCount);
+      if (isAllTypes) {
+        // 全量数据存入 allItems，客户端分页
+        setAllItems(records);
+        setTotal(records.length);
+        setItems(records.slice(0, pageSize));
+      } else {
+        setAllItems([]);
+        setItems(records);
+        setTotal(totalCount);
+      }
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
       setLoading(false);
     }
   }, [typeFilter, statusFilter, keyword, page, pageSize]);
+
+  // typeFilter='all' 时的客户端分页
+  useEffect(() => {
+    if (typeFilter === 'all' && allItems.length > 0) {
+      const start = (page - 1) * pageSize;
+      setItems(allItems.slice(start, start + pageSize));
+    }
+  }, [page, typeFilter, allItems, pageSize]);
 
   useEffect(() => {
     fetchItems();
@@ -509,35 +533,6 @@ export default function ContentPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      {!loading && total > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            共 {total} 条，第 {page} / {Math.ceil(total / pageSize)} 页
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="border-border text-muted-foreground hover:text-foreground"
-            >
-              上一页
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= Math.ceil(total / pageSize)}
-              onClick={() => setPage(p => p + 1)}
-              className="border-border text-muted-foreground hover:text-foreground"
-            >
-              下一页
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Table */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
@@ -712,6 +707,20 @@ export default function ContentPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pagination - 放在表格下方 */}
+      {!loading && total > pageSize && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            共 {total} 条，第 {page} / {Math.ceil(total / pageSize)} 页
+          </p>
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(total / pageSize)}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {/* Detail Modal */}
       <Modal open={!!detailItem} onClose={() => setDetailItem(null)} title="内容详情" width="lg">
