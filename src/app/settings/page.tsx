@@ -188,15 +188,15 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={() => update('notify_on_complete', settings.notify_on_complete === 'true' ? 'false' : 'true')}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.notify_on_complete === 'true' ? 'bg-emerald-600' : 'bg-muted'}`}
+              className={`w-12 h-6 rounded-full relative transition-colors ${settings.notify_on_complete === 'true' ? 'bg-primary' : 'bg-muted'}`}
             >
               <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${settings.notify_on_complete === 'true' ? 'right-1' : 'left-1'}`} />
             </button>
           </div>
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <div>
                 <p className="text-foreground font-medium">错误告警</p>
@@ -205,13 +205,13 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={() => update('notify_on_error', settings.notify_on_error === 'true' ? 'false' : 'true')}
-              className={`w-12 h-6 rounded-full relative transition-colors ${settings.notify_on_error === 'true' ? 'bg-emerald-600' : 'bg-muted'}`}
+              className={`w-12 h-6 rounded-full relative transition-colors ${settings.notify_on_error === 'true' ? 'bg-primary' : 'bg-muted'}`}
             >
               <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${settings.notify_on_error === 'true' ? 'right-1' : 'left-1'}`} />
             </button>
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
-            <Mail className="w-4 h-4 text-blue-500 shrink-0" />
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/10">
+            <Mail className="w-4 h-4 text-primary shrink-0" />
             <p className="text-xs text-muted-foreground">邮件通知功能将在后续版本中支持</p>
           </div>
         </CardContent>
@@ -221,8 +221,8 @@ export default function SettingsPage() {
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <CardTitle className="text-foreground flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Database className="w-4 h-4 text-purple-500" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Database className="w-4 h-4 text-primary" />
             </div>
             数据库配置
           </CardTitle>
@@ -265,8 +265,8 @@ export default function SettingsPage() {
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <CardTitle className="text-foreground flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-red-500" />
+            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-destructive" />
             </div>
             安全设置
           </CardTitle>
