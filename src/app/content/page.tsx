@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { Search, Plus, Edit, Trash2, Eye, AlertCircle, Inbox } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, Inbox } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -232,7 +232,6 @@ export default function ContentPage() {
   const dialog = useDialog();
   const [items, setItems] = useState<ContentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -243,7 +242,6 @@ export default function ContentPage() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const types: FilterType[] = typeFilter === 'all'
         ? ['movie', 'drama', 'variety', 'anime', 'short_drama']
@@ -306,7 +304,7 @@ export default function ContentPage() {
         setTotal(totalCount);
       }
     } catch (e: any) {
-      setError(e?.message || '加载失败');
+      toast.error(e?.message || '加载失败');
     } finally {
       setLoading(false);
     }
@@ -541,11 +539,6 @@ export default function ContentPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {error && (
-            <div className="flex items-center gap-2 px-4 py-3 text-destructive text-sm bg-destructive/10 border-b border-border">
-              <AlertCircle className="w-4 h-4" /> {error}
-            </div>
-          )}
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
