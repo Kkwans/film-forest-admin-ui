@@ -167,10 +167,10 @@ export default function ResourcesPage() {
       {/* Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {[
-          { label: '在线资源', value: stats.online, icon: HardDrive, color: 'text-blue-400' },
-          { label: '磁力资源', value: stats.magnet, icon: Link2, color: 'text-emerald-400' },
-          { label: '网盘资源', value: stats.cloud, icon: Database, color: 'text-purple-400' },
-          { label: '今日新增', value: stats.todayNew, icon: Server, color: 'text-amber-400' },
+          { label: '在线资源', value: stats.online, icon: HardDrive, color: 'text-primary' },
+          { label: '磁力资源', value: stats.magnet, icon: Link2, color: 'text-primary' },
+          { label: '网盘资源', value: stats.cloud, icon: Database, color: 'text-primary' },
+          { label: '今日新增', value: stats.todayNew, icon: Server, color: 'text-primary' },
         ].map((stat) => (
           <Card key={stat.label} className="bg-card border-border">
             <CardContent className="p-5">
@@ -191,7 +191,7 @@ export default function ResourcesPage() {
         footer={
           <>
             <button onClick={() => { setShowSourceForm(false); setEditingSource(null); }} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSaveSource} disabled={!editingSource?.name.trim()} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-50 transition-colors">保存</button>
+            <button onClick={handleSaveSource} disabled={!editingSource?.name.trim()} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50 transition-colors">保存</button>
           </>
         }
       >
@@ -207,7 +207,7 @@ export default function ResourcesPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-foreground">启用状态</label>
-              <button type="button" onClick={() => setEditingSource({...editingSource, enabled: !editingSource.enabled})} className={`w-10 h-5 rounded-full relative transition-colors ${editingSource.enabled ? 'bg-emerald-600' : 'bg-muted'}`}>
+              <button type="button" onClick={() => setEditingSource({...editingSource, enabled: !editingSource.enabled})} className={`w-10 h-5 rounded-full relative transition-colors ${editingSource.enabled ? 'bg-primary' : 'bg-muted'}`}>
                 <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editingSource.enabled ? 'right-0.5' : 'left-0.5'}`} />
               </button>
             </div>
@@ -256,7 +256,7 @@ export default function ResourcesPage() {
                       </div>
                       <div className="col-span-2 text-foreground truncate" title={m.title}>{m.title}</div>
                       <div className="col-span-2">
-                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-blue-500 text-blue-400' : m.resolution === '4K' ? 'border-purple-500 text-purple-400' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
+                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-primary text-primary' : m.resolution === '4K' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
                       </div>
                       <div className="col-span-2 text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</div>
                       <div className="col-span-4 text-muted-foreground text-xs truncate" title={m.magnetUrl}>{m.magnetUrl ? m.magnetUrl.slice(0, 60) + '...' : '-'}</div>
@@ -270,7 +270,7 @@ export default function ResourcesPage() {
                       </div>
                       <p className="text-foreground text-sm font-medium truncate">{m.title}</p>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-blue-500 text-blue-400' : m.resolution === '4K' ? 'border-purple-500 text-purple-400' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
+                        <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-primary text-primary' : m.resolution === '4K' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
                         <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">{m.magnetUrl ? m.magnetUrl.slice(0, 80) + '...' : '-'}</p>
@@ -323,7 +323,7 @@ export default function ResourcesPage() {
                       </div>
                       <div className="col-span-2 text-foreground truncate" title={c.title}>{c.title}</div>
                       <div className="col-span-2">
-                        <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
+                        <Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
                       </div>
                       <div className="col-span-5 text-muted-foreground text-xs truncate">
                         {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">{c.url.slice(0, 50)}...</a> : '-'}
@@ -338,7 +338,7 @@ export default function ResourcesPage() {
                       </div>
                       <p className="text-foreground text-sm font-medium truncate">{c.title}</p>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs border-blue-500 text-blue-400">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
+                        <Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
                         {c.password && <span className="text-muted-foreground text-xs">密码: {c.password}</span>}
                       </div>
                       <p className="text-muted-foreground text-xs truncate">{c.url ? c.url.slice(0, 80) + '...' : '-'}</p>
@@ -359,7 +359,7 @@ export default function ResourcesPage() {
             <CardTitle className="text-foreground flex items-center gap-2">
               <Link2 className="w-5 h-5" /> 资源来源
             </CardTitle>
-            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-foreground transition-colors">
+            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-foreground transition-colors">
               <Plus className="w-3 h-3" /> 新增来源
             </button>
           </div>
@@ -369,10 +369,10 @@ export default function ResourcesPage() {
             {sources.map((source) => (
               <div key={source.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${source.enabled ? 'bg-emerald-400' : 'bg-zinc-400 dark:bg-zinc-600'}`} />
+                  <span className={`w-2 h-2 rounded-full ${source.enabled ? 'bg-primary' : 'bg-muted-foreground'}`} />
                   <span className="text-foreground font-medium">{source.name}</span>
                   {source.name === '七味网' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">默认</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">默认</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -383,12 +383,12 @@ export default function ResourcesPage() {
                     </a>
                   )}
                   <button onClick={() => handleToggleSource(source.id)} className="p-1 rounded hover:bg-muted" title={source.enabled ? '点击禁用' : '点击启用'}>
-                    {source.enabled ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                    {source.enabled ? <ToggleRight className="w-5 h-5 text-primary" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
                   </button>
                   <button onClick={() => handleEditSource(source)} className="p-1 rounded hover:bg-muted text-muted-foreground" title="编辑">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDeleteSource(source.id)} className="p-1 rounded hover:bg-red-500/20 text-red-500" title="删除">
+                  <button onClick={() => handleDeleteSource(source.id)} className="p-1 rounded hover:bg-destructive/20 text-destructive" title="删除">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
