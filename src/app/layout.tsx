@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
+import PageTitle from "@/components/PageTitle";
 import { Providers } from "@/components/providers";
 import { AuthProvider } from "@/components/auth-provider";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-full bg-background text-foreground`}>
         <Providers>
           <AuthProvider>
+            <PageTitle />
             <div className="flex h-screen overflow-hidden">
               <AdminSidebar />
               <div className="flex flex-col flex-1 overflow-hidden">

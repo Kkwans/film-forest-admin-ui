@@ -2,6 +2,7 @@
 
 import { Bell, User, LogOut } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import Breadcrumb from './Breadcrumb';
 import { useAuth } from './auth-provider';
 
 export default function AdminHeader() {
@@ -9,7 +10,10 @@ export default function AdminHeader() {
 
   return (
     <header className="h-16 bg-background border-b border-border flex items-center justify-between px-4 md:px-6">
-      <div className="w-8 md:hidden" />
+      <div className="flex items-center gap-3">
+        <div className="w-8 md:hidden" />
+        <Breadcrumb />
+      </div>
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
