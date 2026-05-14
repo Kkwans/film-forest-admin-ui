@@ -41,7 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  movie: 'text-blue-400', drama: 'text-purple-400', variety: 'text-amber-400', anime: 'text-red-400', short_drama: 'text-emerald-400'
+  movie: 'text-muted-foreground', drama: 'text-muted-foreground', variety: 'text-muted-foreground', anime: 'text-destructive', short_drama: 'text-primary'
 };
 
 type FilterType = 'all' | 'movie' | 'drama' | 'variety' | 'anime' | 'short_drama';
@@ -323,7 +323,7 @@ export default function ContentPage() {
           <h1 className="text-2xl font-bold text-foreground">内容管理</h1>
           <p className="text-sm text-muted-foreground mt-1">管理影视资源内容，审核状态</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handleCreateNew}>
+        <Button className="bg-primary hover:bg-primary/90" onClick={handleCreateNew}>
           <Plus className="w-4 h-4 mr-2" /> 新增内容
         </Button>
       </div>
@@ -331,11 +331,11 @@ export default function ContentPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: '电影', key: 'movie', color: 'text-blue-400' },
-          { label: '剧集', key: 'drama', color: 'text-purple-400' },
-          { label: '综艺', key: 'variety', color: 'text-amber-400' },
-          { label: '动漫', key: 'anime', color: 'text-red-400' },
-          { label: '短剧', key: 'short_drama', color: 'text-emerald-400' },
+          { label: '电影', key: 'movie', color: 'text-muted-foreground' },
+          { label: '剧集', key: 'drama', color: 'text-muted-foreground' },
+          { label: '综艺', key: 'variety', color: 'text-muted-foreground' },
+          { label: '动漫', key: 'anime', color: 'text-destructive' },
+          { label: '短剧', key: 'short_drama', color: 'text-primary' },
         ].map((stat) => (
           <Card key={stat.key} className="bg-card border-border">
             <CardContent className="p-4 flex items-center justify-between">
@@ -416,7 +416,7 @@ export default function ContentPage() {
         </CardHeader>
         <CardContent className="p-0">
           {error && (
-            <div className="flex items-center gap-2 px-4 py-3 text-red-400 text-sm bg-red-900/20 border-b border-border">
+            <div className="flex items-center gap-2 px-4 py-3 text-destructive text-sm bg-destructive/10 border-b border-border">
               <AlertCircle className="w-4 h-4" /> {error}
             </div>
           )}
@@ -474,7 +474,7 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3">
                         {item.scoreDouban ? (
-                          <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/30">
+                          <Badge className="bg-primary/20 text-primary border-primary/30">
                             {item.scoreDouban}
                           </Badge>
                         ) : (
@@ -484,9 +484,9 @@ export default function ContentPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-400' : 'bg-muted-foreground'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-primary' : 'bg-muted-foreground'}`} />
                           {item.status === 1 ? '已上线' : '已下线'}
                         </button>
                       </td>
@@ -500,7 +500,7 @@ export default function ContentPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(item.id, item.type)}
-                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-red-400 transition-colors"
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -532,10 +532,10 @@ export default function ContentPage() {
                 <div className="flex flex-wrap gap-2">
                   <Badge className="bg-muted text-muted-foreground">{TYPE_LABELS[detailItem.type]}</Badge>
                   {detailItem.year && <Badge className="bg-muted text-muted-foreground">{detailItem.year}</Badge>}
-                  {detailItem.scoreDouban && <Badge className="bg-emerald-600/20 text-emerald-400">豆瓣 {detailItem.scoreDouban}</Badge>}
-                  {detailItem.scoreImdb && <Badge className="bg-blue-600/20 text-blue-400">IMDb {detailItem.scoreImdb}</Badge>}
-                  {detailItem.scoreRt && <Badge className="bg-red-600/20 text-red-400">RT {detailItem.scoreRt}%</Badge>}
-                  <Badge className={detailItem.status === 1 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
+                  {detailItem.scoreDouban && <Badge className="bg-primary/20 text-primary">豆瓣 {detailItem.scoreDouban}</Badge>}
+                  {detailItem.scoreImdb && <Badge className="bg-muted text-muted-foreground">IMDb {detailItem.scoreImdb}</Badge>}
+                  {detailItem.scoreRt && <Badge className="bg-destructive/20 text-destructive">RT {detailItem.scoreRt}%</Badge>}
+                  <Badge className={detailItem.status === 1 ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}>
                     {detailItem.status === 1 ? '已上线' : '已下线'}
                   </Badge>
                 </div>
@@ -570,7 +570,7 @@ export default function ContentPage() {
         footer={
           <>
             <button onClick={() => setCreatingNew(false)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSaveNew} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">创建</button>
+            <button onClick={handleSaveNew} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors">创建</button>
           </>
         }
       >
@@ -659,7 +659,7 @@ export default function ContentPage() {
         footer={
           <>
             <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSaveEdit} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">保存</button>
+            <button onClick={handleSaveEdit} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors">保存</button>
           </>
         }
       >
@@ -706,7 +706,7 @@ export default function ContentPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium text-foreground">状态</label>
               <div className="flex items-center gap-2 h-9">
-                <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-emerald-600' : 'bg-muted'}`}>
+                <button type="button" onClick={() => setEditForm({...editForm, status: editForm.status === 1 ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${editForm.status === 1 ? 'bg-primary' : 'bg-muted'}`}>
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editForm.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
                 </button>
                 <span className="text-sm text-muted-foreground">{editForm.status === 1 ? '已上线' : '已下线'}</span>

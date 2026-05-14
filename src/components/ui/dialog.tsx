@@ -24,13 +24,13 @@ const DialogContext = createContext<DialogContextValue | null>(null);
 const VARIANT_STYLES = {
   default: {
     icon: <HelpCircle className="w-6 h-6 text-muted-foreground" />,
-    button: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+    button: 'bg-primary hover:bg-primary/90 text-primary-foreground',
     iconBg: 'bg-muted',
   },
   danger: {
-    icon: <AlertTriangle className="w-6 h-6 text-red-400" />,
-    button: 'bg-red-600 hover:bg-red-500 text-white',
-    iconBg: 'bg-red-500/10',
+    icon: <AlertTriangle className="w-6 h-6 text-destructive" />,
+    button: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground',
+    iconBg: 'bg-destructive/10',
   },
   warning: {
     icon: <Info className="w-6 h-6 text-amber-400" />,

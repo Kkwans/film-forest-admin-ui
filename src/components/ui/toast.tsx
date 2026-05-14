@@ -32,16 +32,16 @@ const ICONS: Record<ToastType, ReactNode> = {
 
 const STYLES: Record<ToastType, { bg: string; border: string; icon: string; text: string }> = {
   success: {
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    icon: 'text-emerald-400',
-    text: 'text-emerald-300',
+    bg: 'bg-primary/10',
+    border: 'border-primary/30',
+    icon: 'text-primary',
+    text: 'text-primary',
   },
   error: {
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    icon: 'text-red-400',
-    text: 'text-red-300',
+    bg: 'bg-destructive/10',
+    border: 'border-destructive/30',
+    icon: 'text-destructive',
+    text: 'text-destructive',
   },
   warning: {
     bg: 'bg-amber-500/10',

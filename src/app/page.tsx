@@ -97,18 +97,18 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { label: '内容总量', value: totalContent, icon: Database, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', href: '/content' },
-    { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-blue-400', bgColor: 'bg-blue-500/10', href: '/crawler' },
-    { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-emerald-400' : 'text-muted-foreground', bgColor: runningCrawlers > 0 ? 'bg-emerald-500/10' : 'bg-muted', href: '/crawler' },
-    { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-amber-400', bgColor: 'bg-amber-500/10', href: '/stats' },
+    { label: '内容总量', value: totalContent, icon: Database, color: 'text-primary', bgColor: 'bg-primary/10', href: '/content' },
+    { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-muted-foreground', bgColor: 'bg-muted', href: '/crawler' },
+    { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-primary' : 'text-muted-foreground', bgColor: runningCrawlers > 0 ? 'bg-primary/10' : 'bg-muted', href: '/crawler' },
+    { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-muted-foreground', bgColor: 'bg-muted', href: '/stats' },
   ];
 
   const contentStats = [
-    { label: '电影', value: stats.movies, icon: '🎬', color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
-    { label: '剧集', value: stats.dramas, icon: '📺', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
-    { label: '综艺', value: stats.varieties, icon: '🎤', color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
-    { label: '动漫', value: stats.animes, icon: '🎯', color: 'text-red-400', bgColor: 'bg-red-500/10' },
-    { label: '短剧', value: stats.shortDramas, icon: '⚡', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    { label: '电影', value: stats.movies, icon: '🎬', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+    { label: '剧集', value: stats.dramas, icon: '📺', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+    { label: '综艺', value: stats.varieties, icon: '🎤', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+    { label: '动漫', value: stats.animes, icon: '🎯', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+    { label: '短剧', value: stats.shortDramas, icon: '⚡', color: 'text-primary', bgColor: 'bg-primary/10' },
   ];
 
   return (
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
       <div className="rounded-xl bg-card border border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">内容分布</h2>
-          <Link href="/stats" className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors flex items-center gap-1">
+          <Link href="/stats" className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
             详细统计 <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground" /> 最近内容
             </h3>
-            <Link href="/content" className="text-xs text-muted-foreground hover:text-emerald-400 flex items-center gap-1 transition-colors">
+            <Link href="/content" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
               查看全部 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   item.status === 1
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-primary/15 text-primary border border-primary/20'
                     : 'bg-muted text-muted-foreground border border-border'
                 }`}>
                   {item.status === 1 ? '上线' : '下线'}
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" /> 爬虫状态
             </h3>
-            <Link href="/crawler" className="text-xs text-muted-foreground hover:text-emerald-400 flex items-center gap-1 transition-colors">
+            <Link href="/crawler" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
               管理 <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -235,8 +235,8 @@ export default function AdminDashboard() {
               const isRunning = task.status === 'running';
               return (
                 <div key={task.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isRunning ? 'bg-emerald-500/10' : 'bg-muted'}`}>
-                    {isRunning ? <Play className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isRunning ? 'bg-primary/10' : 'bg-muted'}`}>
+                    {isRunning ? <Play className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground truncate">{task.name}</p>
@@ -253,8 +253,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-muted-foreground'}`} />
-                    <span className={`text-xs ${isRunning ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                    <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
+                    <span className={`text-xs ${isRunning ? 'text-primary' : 'text-muted-foreground'}`}>
                       {isRunning ? '运行中' : '空闲'}
                     </span>
                   </div>
@@ -268,10 +268,10 @@ export default function AdminDashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-400' },
-          { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-emerald-400' },
-          { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-amber-400' },
-          { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-purple-400' },
+          { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-muted-foreground' },
+          { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-primary' },
+          { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-muted-foreground' },
+          { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-muted-foreground' },
         ].map((action) => (
           <Link
             key={action.label}

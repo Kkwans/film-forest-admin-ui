@@ -109,7 +109,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-all shadow-lg shadow-emerald-600/20"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-all shadow-lg shadow-primary/20"
         >
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> 保存中...</>
@@ -125,8 +125,8 @@ export default function SettingsPage() {
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <CardTitle className="text-foreground flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-blue-500" />
+            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <Globe className="w-4 h-4 text-muted-foreground" />
             </div>
             站点信息
           </CardTitle>
@@ -137,7 +137,7 @@ export default function SettingsPage() {
             <input
               value={settings.site_name}
               onChange={e => update('site_name', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
               placeholder="影视森林"
             />
             <p className="text-xs text-muted-foreground">显示在浏览器标签和页面标题中</p>
@@ -147,7 +147,7 @@ export default function SettingsPage() {
             <input
               value={settings.site_desc}
               onChange={e => update('site_desc', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
               placeholder="影视资源聚合平台"
             />
             <p className="text-xs text-muted-foreground">用于 SEO 和社交分享</p>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
             <input
               value={settings.copyright}
               onChange={e => update('copyright', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
               placeholder="© 2026 影视森林"
             />
             <p className="text-xs text-muted-foreground">显示在页面底部</p>
@@ -169,8 +169,8 @@ export default function SettingsPage() {
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
           <CardTitle className="text-foreground flex items-center gap-2.5 text-lg">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Bell className="w-4 h-4 text-amber-500" />
+            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <Bell className="w-4 h-4 text-muted-foreground" />
             </div>
             通知设置
           </CardTitle>
@@ -178,8 +178,8 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-foreground font-medium">爬取完成通知</p>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="输入新密码"
-                  className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all"
+                  className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 />
               </div>
               <div className="grid gap-2">
@@ -307,12 +307,12 @@ export default function SettingsPage() {
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="再次输入新密码"
-                  className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all"
+                  className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 />
               </div>
               <button
                 onClick={handlePasswordChange}
-                className="w-fit px-5 py-2.5 rounded-lg text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                className="w-fit px-5 py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
               >
                 更新密码
               </button>

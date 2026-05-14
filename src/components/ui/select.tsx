@@ -86,8 +86,8 @@ export function Select({
         className={cn(
           'flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-background px-3 transition-colors',
           h, textSize,
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
-          open && 'border-emerald-500 ring-1 ring-emerald-500/30'
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary/30',
+          open && 'border-primary ring-1 ring-primary/30'
         )}
       >
         <span className={cn('truncate', selected ? 'text-foreground' : 'text-muted-foreground')}>
@@ -116,7 +116,7 @@ export function Select({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="搜索..."
-                  className={cn('w-full pl-8 pr-3 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500', size === 'sm' ? 'h-7 text-xs' : 'h-8 text-sm')}
+                  className={cn('w-full pl-8 pr-3 rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary', size === 'sm' ? 'h-7 text-xs' : 'h-8 text-sm')}
                 />
               </div>
             </div>
@@ -136,12 +136,12 @@ export function Select({
                     textSize,
                     opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     opt.value === value
-                      ? 'bg-emerald-500/10 text-emerald-400'
+                      ? 'bg-primary/10 text-primary'
                       : 'text-foreground hover:bg-muted'
                   )}
                 >
                   <span className="truncate">{opt.label}</span>
-                  {opt.value === value && <Check className="w-4 h-4 shrink-0 text-emerald-400" />}
+                  {opt.value === value && <Check className="w-4 h-4 shrink-0 text-primary" />}
                 </button>
               ))
             )}
@@ -221,8 +221,8 @@ export function MultiSelect({
         onClick={() => { if (!disabled) { setOpen(!open); setSearch(''); } }}
         className={cn(
           'flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 min-h-9 transition-colors',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30',
-          open && 'border-emerald-500 ring-1 ring-emerald-500/30'
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary/30',
+          open && 'border-primary ring-1 ring-primary/30'
         )}
       >
         <div className="flex flex-wrap gap-1 flex-1">
@@ -233,12 +233,12 @@ export function MultiSelect({
               {selectedOptions.slice(0, maxDisplay).map(opt => (
                 <span
                   key={opt.value}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs"
                 >
                   {opt.label}
                   {!disabled && (
                     <X
-                      className="w-3 h-3 hover:text-emerald-200 transition-colors cursor-pointer"
+                      className="w-3 h-3 hover:text-primary/70 transition-colors cursor-pointer"
                       onClick={(e) => removeOption(e, opt.value)}
                     />
                   )}
@@ -267,7 +267,7 @@ export function MultiSelect({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="搜索..."
-                  className="w-full h-8 pl-8 pr-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500"
+                  className="w-full h-8 pl-8 pr-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -288,12 +288,12 @@ export function MultiSelect({
                       'flex w-full items-center justify-between px-3 py-2 text-sm transition-colors',
                       opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                       isSelected
-                        ? 'bg-emerald-500/10 text-emerald-400'
+                        ? 'bg-primary/10 text-primary'
                         : 'text-foreground hover:bg-muted'
                     )}
                   >
                     <span className="truncate">{opt.label}</span>
-                    {isSelected && <Check className="w-4 h-4 shrink-0 text-emerald-400" />}
+                    {isSelected && <Check className="w-4 h-4 shrink-0 text-primary" />}
                   </button>
                 );
               })
