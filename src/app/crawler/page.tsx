@@ -122,7 +122,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
           { key: 'monthly' as CronMode, label: '每月定时' },
         ]).map(opt => (
           <button key={opt.key} type="button" onClick={() => { setMode(opt.key); update(opt.key); }}
-            className={`px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors ${mode === opt.key ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+            className={`px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors ${mode === opt.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
             {opt.label}
           </button>
         ))}
@@ -134,7 +134,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
           <div className="flex flex-wrap gap-1.5 md:gap-2">
             {INTERVAL_OPTIONS.map(opt => (
               <button key={opt.value} type="button" onClick={() => { setInterval(opt.value); onChange(opt.value); }}
-                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${interval === opt.value ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${interval === opt.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                 {opt.label}
               </button>
             ))}
@@ -159,7 +159,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
                 const newDow = dow.includes(d.value) ? dow.filter(x => x !== d.value) : [...dow, d.value];
                 setDow(newDow); update(mode, undefined, undefined, undefined, undefined, newDow);
               }}
-                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${dow.includes(d.value) ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${dow.includes(d.value) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                 {d.label}
               </button>
             ))}
@@ -435,7 +435,7 @@ export default function CrawlerPage() {
           <h1 className="text-xl md:text-2xl font-bold text-foreground">爬虫管理</h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">配置定时爬虫任务，监控抓取进度</p>
         </div>
-        <button onClick={handleCreateNew} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+        <button onClick={handleCreateNew} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors">
           <Plus className="w-4 h-4" /> 新建配置
         </button>
       </div>
@@ -443,11 +443,11 @@ export default function CrawlerPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 md:gap-4">
         <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg border bg-card">
-          <Database className="w-5 h-5 md:w-6 md:h-6 text-emerald-500 opacity-60 shrink-0" />
+          <Database className="w-5 h-5 md:w-6 md:h-6 text-primary opacity-60 shrink-0" />
           <div><p className="text-xs text-muted-foreground">配置总数</p><p className="text-lg md:text-xl font-bold text-foreground">{stats.total}</p></div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg border bg-card">
-          <Activity className="w-5 h-5 md:w-6 md:h-6 text-amber-500 opacity-60 shrink-0" />
+          <Activity className="w-5 h-5 md:w-6 md:h-6 text-primary opacity-60 shrink-0" />
           <div><p className="text-xs text-muted-foreground">运行中</p><p className="text-lg md:text-xl font-bold text-foreground">{stats.running}</p></div>
         </div>
         <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-lg border bg-card">
@@ -461,7 +461,7 @@ export default function CrawlerPage() {
         footer={
           <>
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSave} disabled={saving || !form.name.trim()} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-50 transition-colors">
+            <button onClick={handleSave} disabled={saving || !form.name.trim()} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50 transition-colors">
               {saving ? '保存中...' : '保存配置'}
             </button>
           </>
@@ -469,7 +469,7 @@ export default function CrawlerPage() {
       >
         <div className="space-y-4 md:space-y-5">
           <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">配置名称 <span className="text-red-400">*</span></label>
+            <label className="text-sm font-medium text-foreground">配置名称 <span className="text-destructive">*</span></label>
             <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="如：电影每日爬取" className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -490,7 +490,7 @@ export default function CrawlerPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium text-foreground">启用状态</label>
               <div className="flex items-center gap-2 h-10">
-                <button type="button" onClick={() => setForm({...form, enabled: form.enabled ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${form.enabled ? 'bg-emerald-600' : 'bg-muted'}`}>
+                <button type="button" onClick={() => setForm({...form, enabled: form.enabled ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${form.enabled ? 'bg-primary' : 'bg-muted'}`}>
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.enabled ? 'right-0.5' : 'left-0.5'}`} />
                 </button>
                 <span className="text-sm text-muted-foreground">{form.enabled ? '已启用' : '已禁用'}</span>
@@ -514,7 +514,7 @@ export default function CrawlerPage() {
                           setSelectedGenres(prev => prev.filter(x => x !== g));
                         }
                       }}
-                      className="rounded accent-emerald-500"
+                      className="rounded accent-primary"
                     />
                     {g}
                   </label>
@@ -583,29 +583,29 @@ export default function CrawlerPage() {
                     <td className="p-3 text-muted-foreground hidden lg:table-cell">{PRIORITY_OPTIONS.find(o => o.value === s.priority)?.label || s.priority}</td>
                     <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{timeAgo(s.lastRunTime)}</td>
                     <td className="p-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-primary/20 text-primary dark:text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {isRunning ? '运行中' : '空闲'}
                       </span>
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {isRunning ? (
-                          <button onClick={() => handleStop(s.id)} disabled={isLoading} className="p-1.5 rounded hover:bg-red-500/20 text-red-500 disabled:opacity-50" title="停止">
+                          <button onClick={() => handleStop(s.id)} disabled={isLoading} className="p-1.5 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50" title="停止">
                             <Square className="w-4 h-4" />
                           </button>
                         ) : (
-                          <button onClick={() => handleStart(s.id)} disabled={isLoading} className="p-1.5 rounded hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 disabled:opacity-50" title="启动">
+                          <button onClick={() => handleStart(s.id)} disabled={isLoading} className="p-1.5 rounded hover:bg-primary/20 text-primary dark:text-primary disabled:opacity-50" title="启动">
                             <Play className="w-4 h-4" />
                           </button>
                         )}
                         <button onClick={() => handleToggle(s)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title={s.enabled ? '禁用' : '启用'}>
-                          {s.enabled ? <ToggleRight className="w-4 h-4 text-emerald-500" /> : <ToggleLeft className="w-4 h-4" />}
+                          {s.enabled ? <ToggleRight className="w-4 h-4 text-primary" /> : <ToggleLeft className="w-4 h-4" />}
                         </button>
                         <button onClick={() => handleEdit(s)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="编辑">
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded hover:bg-red-500/20 text-red-500" title="删除">
+                        <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded hover:bg-destructive/20 text-destructive" title="删除">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -633,26 +633,26 @@ export default function CrawlerPage() {
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">{TYPE_MAP[s.contentType] || s.contentType}</span>
                       <span className="text-xs text-muted-foreground font-mono">{s.cronExpression}</span>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {isRunning ? '运行中' : '空闲'}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {isRunning ? (
-                      <button onClick={() => handleStop(s.id)} disabled={isLoading} className="p-2 rounded hover:bg-red-500/20 text-red-500 disabled:opacity-50">
+                      <button onClick={() => handleStop(s.id)} disabled={isLoading} className="p-2 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50">
                         <Square className="w-4 h-4" />
                       </button>
                     ) : (
-                      <button onClick={() => handleStart(s.id)} disabled={isLoading} className="p-2 rounded hover:bg-emerald-500/20 text-emerald-400 disabled:opacity-50">
+                      <button onClick={() => handleStart(s.id)} disabled={isLoading} className="p-2 rounded hover:bg-primary/20 text-primary disabled:opacity-50">
                         <Play className="w-4 h-4" />
                       </button>
                     )}
                     <button onClick={() => handleEdit(s)} className="p-2 rounded hover:bg-muted text-muted-foreground">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(s.id)} className="p-2 rounded hover:bg-red-500/20 text-red-500">
+                    <button onClick={() => handleDelete(s.id)} className="p-2 rounded hover:bg-destructive/20 text-destructive">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -713,17 +713,17 @@ export default function CrawlerPage() {
                           <td className="p-3 text-muted-foreground text-xs">{TYPE_MAP[log.contentType] || log.contentType}</td>
                           <td className="p-3">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              log.status === 'success' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
-                              log.status === 'failed' ? 'bg-red-500/20 text-red-500' :
-                              log.status === 'running' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                              log.status === 'success' ? 'bg-primary/20 text-primary dark:text-primary' :
+                              log.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                              log.status === 'running' ? 'bg-primary/20 text-primary dark:text-primary' :
                               'bg-muted text-muted-foreground'
                             }`}>
                               {log.status === 'success' ? '✅ 成功' : log.status === 'failed' ? '❌ 失败' : log.status === 'running' ? '🔄 运行中' : log.status}
                             </span>
                           </td>
                           <td className="p-3 text-muted-foreground">{log.itemsCrawled || 0}</td>
-                          <td className="p-3 text-emerald-500">+{log.itemsAdded || 0}</td>
-                          <td className="p-3 text-amber-500 hidden lg:table-cell">{log.itemsUpdated || 0}</td>
+                          <td className="p-3 text-primary">+{log.itemsAdded || 0}</td>
+                          <td className="p-3 text-primary hidden lg:table-cell">{log.itemsUpdated || 0}</td>
                           <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{log.durationMs ? `${(log.durationMs / 1000).toFixed(1)}s` : '-'}</td>
                           <td className="p-3 text-muted-foreground text-xs">{formatTime(log.startedAt)}</td>
                         </tr>
@@ -738,9 +738,9 @@ export default function CrawlerPage() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground truncate">{log.scheduleName || '-'}</p>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                          log.status === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
-                          log.status === 'failed' ? 'bg-red-500/20 text-red-500' :
-                          log.status === 'running' ? 'bg-amber-500/20 text-amber-400' :
+                          log.status === 'success' ? 'bg-primary/20 text-primary' :
+                          log.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                          log.status === 'running' ? 'bg-primary/20 text-primary' :
                           'bg-muted text-muted-foreground'
                         }`}>
                           {log.status === 'success' ? '✅' : log.status === 'failed' ? '❌' : log.status === 'running' ? '🔄' : ''}{log.status}
@@ -748,13 +748,13 @@ export default function CrawlerPage() {
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>抓取: {log.itemsCrawled || 0}</span>
-                        <span className="text-emerald-500">新增: +{log.itemsAdded || 0}</span>
-                        <span className="text-amber-500">更新: {log.itemsUpdated || 0}</span>
+                        <span className="text-primary">新增: +{log.itemsAdded || 0}</span>
+                        <span className="text-primary">更新: {log.itemsUpdated || 0}</span>
                         {log.durationMs && <span>耗时: {(log.durationMs / 1000).toFixed(1)}s</span>}
                         <span>{formatTime(log.startedAt)}</span>
                       </div>
                       {log.errorMessage && (
-                        <p className="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1">{log.errorMessage}</p>
+                        <p className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1">{log.errorMessage}</p>
                       )}
                     </div>
                   ))}
@@ -765,9 +765,9 @@ export default function CrawlerPage() {
               <div className="p-4 border-t">
                 <p className="text-sm font-medium text-foreground mb-2">错误详情</p>
                 {logs.filter(l => l.errorMessage).map((log) => (
-                  <div key={log.id} className="mb-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <div key={log.id} className="mb-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                     <p className="text-xs text-muted-foreground mb-1">{log.scheduleName} — {formatTime(log.startedAt)}</p>
-                    <p className="text-sm text-red-400 break-all">{log.errorMessage}</p>
+                    <p className="text-sm text-destructive break-all">{log.errorMessage}</p>
                   </div>
                 ))}
               </div>
