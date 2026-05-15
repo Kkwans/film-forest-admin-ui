@@ -42,6 +42,50 @@ adminClient.interceptors.response.use(
   }
 );
 
+/** 内容提交数据（创建/更新通用） */
+export interface ContentSubmitData {
+  title: string;
+  year?: number | null;
+  scoreDouban?: number | null;
+  scoreImdb?: number | null;
+  scoreRt?: number | null;
+  genre?: string | null;   // JSON array string
+  region?: string | null;   // JSON array string
+  language?: string | null;
+  director?: string | null;
+  writer?: string | null;
+  actor?: string | null;
+  storyline?: string | null;
+  duration?: number | null;
+  releaseDate?: string | null;
+  alias?: string | null;
+  status?: number;
+  type?: string;
+  posterUrl?: string;
+}
+
+/** 保存爬虫配置请求体 */
+export type SaveScheduleData = Partial<Omit<CrawlerSchedule, 'id' | 'status' | 'lastRunTime' | 'nextRunTime' | 'totalRuns' | 'totalItems' | 'createdAt' | 'updatedAt'>>;
+
+/** 保存网盘资源请求体 */
+export interface SaveCloudData {
+  id?: number;
+  contentType: string;
+  contentId: number;
+  storageName: string;
+  url: string;
+  resolution?: string;
+}
+
+/** 保存资源来源请求体 */
+export interface SaveSourceData {
+  id?: number;
+  name: string;
+  url: string;
+  type?: string;
+  enabled?: boolean;
+}
+
 export const crawlerApi = {
   /** 获取所有定时配置 */
   listSchedules: () => adminClient.get('/api/crawler/schedules'),
@@ -50,7 +94,7 @@ export const crawlerApi = {
   getSchedule: (id: number) => adminClient.get(`/api/crawler/schedule/${id}`),
 
   /** 保存/更新配置 */
-  saveSchedule: (data: any) => adminClient.post('/api/crawler/schedule', data),
+  saveSchedule: (data: SaveScheduleData) => adminClient.post('/api/crawler/schedule', data),
 
   /** 删除配置 */
   deleteSchedule: (id: number) => adminClient.delete(`/api/crawler/schedule/${id}`),
@@ -124,12 +168,12 @@ export const resourceApi = {
   listCloud: (contentType?: string, contentId?: number) =>
     adminClient.get('/api/admin/resources/cloud', { params: { contentType, contentId } }),
   // 网盘资源 CRUD
-  saveCloud: (data: any) => adminClient.post('/api/admin/resources/cloud', data),
+  saveCloud: (data: SaveCloudData) => adminClient.post('/api/admin/resources/cloud', data),
   deleteCloud: (id: number) => adminClient.delete(`/api/admin/resources/cloud/${id}`),
 
   // 资源来源 CRUD
   listSources: () => adminClient.get('/api/admin/resources/sources'),
-  saveSource: (data: any) => adminClient.post('/api/admin/resources/sources', data),
+  saveSource: (data: SaveSourceData) => adminClient.post('/api/admin/resources/sources', data),
   deleteSource: (id: number) => adminClient.delete(`/api/admin/resources/sources/${id}`),
   toggleSource: (id: number, enabled: boolean) =>
     adminClient.post(`/api/admin/resources/sources/${id}/toggle?enabled=${enabled}`),
@@ -141,40 +185,40 @@ export const contentApi = {
   listMovies: (params: { page?: number; size?: number; year?: number; keyword?: string }) =>
     adminClient.get('/api/content/movies', { params }),
   getMovie: (id: number) => adminClient.get(`/api/content/movies/${id}`),
-  createMovie: (data: any) => adminClient.post('/api/content/movies', data),
-  updateMovie: (id: number, data: any) => adminClient.put(`/api/content/movies/${id}`, data),
+  createMovie: (data: ContentSubmitData) => adminClient.post('/api/content/movies', data),
+  updateMovie: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/movies/${id}`, data),
   deleteMovie: (id: number) => adminClient.delete(`/api/content/movies/${id}`),
 
   // 剧集
   listDramas: (params: { page?: number; size?: number; year?: number; keyword?: string }) =>
     adminClient.get('/api/content/dramas', { params }),
   getDrama: (id: number) => adminClient.get(`/api/content/dramas/${id}`),
-  createDrama: (data: any) => adminClient.post('/api/content/dramas', data),
-  updateDrama: (id: number, data: any) => adminClient.put(`/api/content/dramas/${id}`, data),
+  createDrama: (data: ContentSubmitData) => adminClient.post('/api/content/dramas', data),
+  updateDrama: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/dramas/${id}`, data),
   deleteDrama: (id: number) => adminClient.delete(`/api/content/dramas/${id}`),
 
   // 综艺
   listVarieties: (params: { page?: number; size?: number; year?: number; keyword?: string }) =>
     adminClient.get('/api/content/varieties', { params }),
   getVariety: (id: number) => adminClient.get(`/api/content/varieties/${id}`),
-  createVariety: (data: any) => adminClient.post('/api/content/varieties', data),
-  updateVariety: (id: number, data: any) => adminClient.put(`/api/content/varieties/${id}`, data),
+  createVariety: (data: ContentSubmitData) => adminClient.post('/api/content/varieties', data),
+  updateVariety: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/varieties/${id}`, data),
   deleteVariety: (id: number) => adminClient.delete(`/api/content/varieties/${id}`),
 
   // 动漫
   listAnimes: (params: { page?: number; size?: number; year?: number; keyword?: string }) =>
     adminClient.get('/api/content/animes', { params }),
   getAnime: (id: number) => adminClient.get(`/api/content/animes/${id}`),
-  createAnime: (data: any) => adminClient.post('/api/content/animes', data),
-  updateAnime: (id: number, data: any) => adminClient.put(`/api/content/animes/${id}`, data),
+  createAnime: (data: ContentSubmitData) => adminClient.post('/api/content/animes', data),
+  updateAnime: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/animes/${id}`, data),
   deleteAnime: (id: number) => adminClient.delete(`/api/content/animes/${id}`),
 
   // 短剧
   listShortDramas: (params: { page?: number; size?: number; year?: number; keyword?: string }) =>
     adminClient.get('/api/content/short-dramas', { params }),
   getShortDrama: (id: number) => adminClient.get(`/api/content/short-dramas/${id}`),
-  createShortDrama: (data: any) => adminClient.post('/api/content/short-dramas', data),
-  updateShortDrama: (id: number, data: any) => adminClient.put(`/api/content/short-dramas/${id}`, data),
+  createShortDrama: (data: ContentSubmitData) => adminClient.post('/api/content/short-dramas', data),
+  updateShortDrama: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/short-dramas/${id}`, data),
   deleteShortDrama: (id: number) => adminClient.delete(`/api/content/short-dramas/${id}`),
 
   // 合并列表
