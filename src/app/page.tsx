@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -15,25 +16,11 @@ interface Stats {
   shortDramas: number;
 }
 
-interface RecentItem {
-  id: number;
-  title: string;
-  type: string;
-  status: number;
-  createdAt: string;
-  scoreDouban?: number;
-}
-
-interface CrawlerStatus {
-  id: number;
-  name: string;
-  contentType: string;
-  status: string;
-  enabled: number;
-  lastRunTime: string | null;
-  totalItems: number;
-  totalRuns: number;
-}
+interface RecentItem { id: number; title: string; type: string; status: number; createdAt: string; scoreDouban?: number; }
+interface StatsResponse { code: number; data: Stats; }
+interface RecentItemsResponse { code: number; data: RecentItem[]; }
+interface CrawlerStatusItem { id: number; name: string; contentType: string; status: string; totalRuns: number; totalItems: number; enabled: number; lastRunTime: string | null; }
+interface CrawlerStatusResponse { code: number; data: { schedules: CrawlerStatusItem[]; }; }
 
 const TYPE_LABELS: Record<string, string> = {
   movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧'
@@ -46,7 +33,7 @@ const TYPE_ICONS: Record<string, string> = {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
-  const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatus[]>([]);
+  const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const toast = useToast();
@@ -54,15 +41,15 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       const [statsRes, allRes, crawlerRes] = await Promise.all([
-        contentApi.getStats() as Promise<any>,
-        contentApi.listAll({ page: 1, size: 20 }) as Promise<any>,
-        crawlerApi.getStatus() as Promise<any>,
+        contentApi.getStats() as Promise<AxiosResponse<StatsResponse>>,
+        contentApi.listAll({ page: 1, size: 20 }) as Promise<AxiosResponse<RecentItemsResponse>>,
+        crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResponse>>,
       ]);
 
       if (statsRes.data?.code === 200) setStats(statsRes.data.data);
       if (allRes.data?.code === 200) {
         const items = allRes.data.data;
-        items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        items.sort((a: RecentItem, b: RecentItem) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setRecentItems(items.slice(0, 8));
       }
       if (crawlerRes.data?.code === 200) {

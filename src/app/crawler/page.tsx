@@ -2,13 +2,21 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { crawlerApi, contentApi, type CrawlerSchedule } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
-// ========== Cron 可视化构建器 ==========
+// ========== 类型定义 ==========
+interface SourceOption { id: number; name: string; url: string; type: string; enabled: number; }
+// 爬虫状态 API 返回结构（直接返回 data，非 Result 包装）
+interface CrawlerStatusResponse { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
+interface CrawlerScheduleItem { id: number; name: string; contentType: string; sourceSite: string; enabled: number; status: string; totalRuns: number; totalItems: number; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string | null; lastRunTime: string | null; nextRunTime: string | null; }
+interface LogResult { code: number; data: CrawlerTaskLog[]; }
+interface SourcesResult { code: number; data: SourceOption[]; }
+interface GenresResult { code: number; data: string[]; }
 
 type CronMode = 'interval' | 'daily' | 'weekly' | 'monthly';
 
@@ -267,7 +275,7 @@ const EMPTY_FORM: ScheduleForm = {
 export default function CrawlerPage() {
   const toast = useToast();
   const dialog = useDialog();
-  const [schedules, setSchedules] = useState<CrawlerSchedule[]>([]);
+  const [schedules, setSchedules] = useState<CrawlerScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
   const [stats, setStats] = useState({ total: 0, running: 0, idle: 0 });
@@ -285,13 +293,13 @@ export default function CrawlerPage() {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const res = await crawlerApi.getStatus() as any;
+      const res = await crawlerApi.getStatus() as AxiosResponse<CrawlerStatusResponse>;
       const data = res.data?.schedules || [];
       setSchedules(data);
       setStats({
         total: data.length,
-        running: data.filter((s: any) => s.status === 'running').length,
-        idle: data.filter((s: any) => s.status !== 'running').length,
+        running: data.filter((s: CrawlerScheduleItem) => s.status === 'running').length,
+        idle: data.filter((s: CrawlerScheduleItem) => s.status !== 'running').length,
       });
     } catch (e) {
       console.error('fetch schedules error', e);
@@ -303,7 +311,7 @@ export default function CrawlerPage() {
   const fetchLogs = useCallback(async () => {
     try {
       setLogsLoading(true);
-      const res = await crawlerApi.listLogs() as any;
+      const res = await crawlerApi.listLogs() as AxiosResponse<LogResult>;
       setLogs(res.data?.data || []);
       setLogsLoaded(true);
     } catch (e) {
@@ -324,8 +332,8 @@ export default function CrawlerPage() {
 
   // 加载资源来源列表
   useEffect(() => {
-    crawlerApi.listSources().then(res => {
-      const data = (res as any).data;
+    crawlerApi.listSources().then((res: AxiosResponse<SourcesResult>) => {
+      const data = res.data;
       if (data?.code === 200) setSources(data.data || []);
     }).catch(() => {});
   }, []);
@@ -333,8 +341,8 @@ export default function CrawlerPage() {
   // 当 contentType 变化时加载 genre 列表
   useEffect(() => {
     if (showForm) {
-      contentApi.getGenres(form.contentType).then(res => {
-        const data = (res as any).data;
+      contentApi.getGenres(form.contentType).then((res: AxiosResponse<GenresResult>) => {
+        const data = res.data;
         if (data?.code === 200) setGenres(data.data || []);
       }).catch(() => setGenres([]));
     }
@@ -350,7 +358,7 @@ export default function CrawlerPage() {
     try { await crawlerApi.stop(id); toast.success('爬虫已停止'); await fetchSchedules(); } catch (e) { toast.error('停止失败'); console.error(e); } finally { setActionId(null); }
   };
 
-  const handleToggle = async (schedule: CrawlerSchedule) => {
+  const handleToggle = async (schedule: CrawlerScheduleItem) => {
     try { await crawlerApi.toggleEnabled(schedule.id, schedule.enabled !== 1); toast.success(schedule.enabled ? '已禁用' : '已启用'); await fetchSchedules(); } catch (e) { toast.error('操作失败'); console.error(e); }
   };
 
@@ -369,7 +377,7 @@ export default function CrawlerPage() {
     return gf;
   };
 
-  const handleEdit = (schedule: CrawlerSchedule) => {
+  const handleEdit = (schedule: CrawlerScheduleItem) => {
     setForm({
       id: schedule.id,
       name: schedule.name,
@@ -398,7 +406,7 @@ export default function CrawlerPage() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const submitData: any = {
+      const submitData: { name: string; contentType: string; sourceSite: string; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string; enabled: number; id?: number } = {
         name: form.name,
         contentType: form.contentType,
         sourceSite: form.sourceSite,

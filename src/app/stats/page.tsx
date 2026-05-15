@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { BarChart3, Activity, Database, Inbox } from 'lucide-react';
-import { contentApi, crawlerApi } from '@/lib/api';
+import { contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface Stats { movies: number; dramas: number; varieties: number; animes: number; shortDramas: number; }
-interface CrawlerStats { total: number; running: number; idle: number; totalRuns: number; totalItems: number; schedules: Array<{ name: string; contentType: string; totalRuns: number; totalItems: number; status: string; }>; }
+interface CrawlerStats { total: number; running: number; idle: number; totalRuns: number; totalItems: number; schedules: CrawlerScheduleItem[]; }
+interface CrawlerScheduleItem { name: string; contentType: string; totalRuns: number; totalItems: number; status: string; }
+interface CrawlerStatusResult { code: number; data: CrawlerStatusResponse; }
+interface CrawlerStatusResponse { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
+interface ApiResult<T> { code: number; data: T; }
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'];
 const TYPE_LABELS: Record<string, string> = { movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧' };
@@ -22,12 +27,15 @@ export default function StatsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [statsRes, crawlerRes] = await Promise.all([contentApi.getStats() as Promise<any>, crawlerApi.getStatus() as Promise<any>]);
+        const [statsRes, crawlerRes] = await Promise.all([
+          contentApi.getStats() as Promise<AxiosResponse<ApiResult<Stats>>>,
+          crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResult>>,
+        ]);
         if (statsRes.data?.code === 200) setStats(statsRes.data.data);
         if (crawlerRes.data?.code === 200) {
           const d = crawlerRes.data.data;
           const schedules = d.schedules || [];
-          setCrawlerStats({ total: d.total || 0, running: d.running || 0, idle: d.idle || 0, totalRuns: schedules.reduce((s: number, x: any) => s + (x.totalRuns || 0), 0), totalItems: schedules.reduce((s: number, x: any) => s + (x.totalItems || 0), 0), schedules });
+          setCrawlerStats({ total: d.total || 0, running: d.running || 0, idle: d.idle || 0, totalRuns: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalRuns || 0), 0), totalItems: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalItems || 0), 0), schedules });
         }
       } catch (e) {
         console.error(e);
@@ -48,7 +56,7 @@ export default function StatsPage() {
     { label: '短剧', value: stats.shortDramas, icon: '⚡' },
   ];
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) => {
     if (active && payload?.length) {
       const d = payload[0];
       const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : '0';

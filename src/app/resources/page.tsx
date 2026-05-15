@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { resourceApi } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Modal } from '@/components/ui/modal';
@@ -50,6 +51,12 @@ interface SourceSite {
   enabled: boolean;
 }
 
+// ========== API 响应类型 ==========
+interface StatsResult { code: number; data: ResourceStats; }
+interface MagnetResult { code: number; data: MagnetResource[]; }
+interface CloudResult { code: number; data: CloudResource[]; }
+interface SourcesResult { code: number; data: SourceSite[]; }
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -84,10 +91,10 @@ export default function ResourcesPage() {
     try {
       setLoading(true);
       const [statsRes, magnetRes, cloudRes, sourcesRes] = await Promise.all([
-        resourceApi.getStats() as Promise<any>,
-        resourceApi.listMagnet() as Promise<any>,
-        resourceApi.listCloud() as Promise<any>,
-        resourceApi.listSources() as Promise<any>,
+        resourceApi.getStats() as Promise<AxiosResponse<StatsResult>>,
+        resourceApi.listMagnet() as Promise<AxiosResponse<MagnetResult>>,
+        resourceApi.listCloud() as Promise<AxiosResponse<CloudResult>>,
+        resourceApi.listSources() as Promise<AxiosResponse<SourcesResult>>,
       ]);
       setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setMagnets((magnetRes.data?.data || []).slice(0, 50));

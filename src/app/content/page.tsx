@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Search, Plus, Edit, Trash2, Eye, Inbox } from 'lucide-react';
 import { contentApi } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import Pagination from '@/components/Pagination';
@@ -40,6 +41,7 @@ function dispatchByType<T>(
   return handlers[type]();
 }
 
+// ========== 类型定义 ==========
 interface ContentRecord {
   id: number;
   title: string;
@@ -63,6 +65,9 @@ interface ContentRecord {
   createdAt: string;
   updatedAt: string;
 }
+interface ContentListParams { page: number; size: number; keyword?: string; }
+interface ContentListResponse { code: number; data: { records: ContentRecord[]; total: number }; }
+interface ContentResult { code: number; data: { records: ContentRecord[]; total: number } | ContentRecord[]; }
 
 type FilterType = 'all' | ContentType;
 type StatusFilter = 'all' | '1' | '0';
@@ -94,7 +99,7 @@ export default function ContentPage() {
 
       const results = await Promise.allSettled(
         types.map(t => {
-          const params: any = { page: fetchPage, size: fetchSize };
+          const params: ContentListParams = { page: fetchPage, size: fetchSize };
           if (keyword) params.keyword = keyword;
           switch (t) {
             case 'movie': return contentApi.listMovies(params);
@@ -113,7 +118,7 @@ export default function ContentPage() {
         if (result.status === 'fulfilled' && result.value) {
           const res = result.value;
           if (res.data?.code === 200) {
-            const recs: ContentRecord[] = (res.data.data.records || []).map((r: any) => ({
+            const recs: ContentRecord[] = (res.data.data.records || []).map((r: ContentRecord) => ({
               ...r,
               type: types[idx],
             }));
@@ -143,8 +148,9 @@ export default function ContentPage() {
         setItems(records);
         setTotal(totalCount);
       }
-    } catch (e: any) {
-      toast.error(e?.message || '加载失败');
+    } catch (e: unknown) {
+      console.error('fetch error', e);
+      toast.error('数据加载失败');
     } finally {
       setLoading(false);
     }
