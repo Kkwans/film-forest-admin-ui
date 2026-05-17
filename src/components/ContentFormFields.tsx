@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 
 export interface EditForm {
   title: string;
+  posterUrl: string;
   year: string;
   scoreDouban: string;
   scoreImdb: string;
@@ -34,7 +35,7 @@ export type ContentType = 'movie' | 'drama' | 'variety' | 'anime' | 'short_drama
 // ========== 常量 ==========
 
 export const EMPTY_FORM: EditForm = {
-  title: '', year: '', scoreDouban: '', scoreImdb: '', scoreRt: '',
+  title: '', posterUrl: '', year: '', scoreDouban: '', scoreImdb: '', scoreRt: '',
   genre: '', region: '', language: '', director: '', writer: '',
   actor: '', storyline: '', duration: '', releaseDate: '', alias: '',
   status: 1, type: 'movie',
@@ -73,6 +74,7 @@ export function buildSubmitData(form: EditForm) {
     v ? JSON.stringify(v.split(/[，,]/).map(s => s.trim()).filter(Boolean)) : null;
   return {
     title: form.title,
+    posterUrl: form.posterUrl || undefined,
     year: form.year ? Number(form.year) : null,
     scoreDouban: form.scoreDouban ? Number(form.scoreDouban) : null,
     scoreImdb: form.scoreImdb ? Number(form.scoreImdb) : null,
@@ -135,6 +137,9 @@ export function ContentFormFields({ form, onChange, showStatus = false }: {
       </div>
       <Field label="标题">
         <FormInput value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" />
+      </Field>
+      <Field label="海报 URL">
+        <FormInput value={form.posterUrl} onChange={e => onChange({ ...form, posterUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
       </Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="豆瓣评分">

@@ -250,6 +250,7 @@ export default function ContentPage() {
     setEditingItem(item);
     setEditForm({
       title: item.title || '',
+      posterUrl: item.posterUrl || '',
       year: String(item.year || ''),
       scoreDouban: String(item.scoreDouban || ''),
       scoreImdb: String(item.scoreImdb || ''),
