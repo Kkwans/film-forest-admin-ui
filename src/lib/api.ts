@@ -272,6 +272,8 @@ export const statsApi = {
   getOverview: () => adminClient.get('/api/stats/overview'),
   /** 内容增长趋势（近N天） */
   getTrend: (days?: number) => adminClient.get('/api/stats/trend', { params: { days } }),
+  /** 热门搜索词（近N天，Top M） */
+  getHotSearch: (days?: number, limit?: number) => adminClient.get('/api/stats/hot-search', { params: { days, limit } }),
 };
 
 export default client;

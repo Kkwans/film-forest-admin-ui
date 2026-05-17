@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, Activity, Database, Inbox, TrendingUp, CheckCircle2, XCircle, Users } from 'lucide-react';
+import { BarChart3, Activity, Database, Inbox, TrendingUp, CheckCircle2, XCircle, Users, Search } from 'lucide-react';
 import { statsApi, contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
@@ -33,6 +33,12 @@ interface TrendData {
   labels: Record<string, string>;
 }
 
+interface HotSearchItem {
+  keyword: string;
+  count: number;
+  lastSearchAt: string;
+}
+
 const COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'];
 const TYPE_LABELS: Record<string, string> = { movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧' };
 const TYPE_ICONS: Record<string, string> = { movie: '🎬', drama: '📺', variety: '🎤', anime: '🎯', short_drama: '⚡' };
@@ -43,17 +49,19 @@ export default function StatsPage() {
   const [trend, setTrend] = useState<TrendData | null>(null);
   const [crawlerStats, setCrawlerStats] = useState<CrawlerStats>({ total: 0, running: 0, idle: 0, totalRuns: 0, totalItems: 0, schedules: [] });
   const [dailyStats, setDailyStats] = useState<DailyStatsItem[]>([]);
+  const [hotSearch, setHotSearch] = useState<HotSearchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [overviewRes, trendRes, crawlerRes, dailyRes] = await Promise.all([
+        const [overviewRes, trendRes, crawlerRes, dailyRes, hotSearchRes] = await Promise.all([
           statsApi.getOverview() as Promise<AxiosResponse<ApiResult<OverviewData>>>,
           statsApi.getTrend(30) as Promise<AxiosResponse<ApiResult<TrendData>>>,
           crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResult>>,
           crawlerApi.getDailyStats() as Promise<AxiosResponse<ApiResult<DailyStatsItem[]>>>,
+          statsApi.getHotSearch(30, 15) as Promise<AxiosResponse<ApiResult<HotSearchItem[]>>>,
         ]);
 
         if (overviewRes.data?.code === 200) setOverview(overviewRes.data.data);
@@ -69,6 +77,7 @@ export default function StatsPage() {
           });
         }
         if (dailyRes.data?.code === 200) setDailyStats(dailyRes.data.data || []);
+        if (hotSearchRes.data?.code === 200) setHotSearch(hotSearchRes.data.data || []);
       } catch (e) {
         console.error(e);
         toast.error('统计数据加载失败');
@@ -176,6 +185,50 @@ export default function StatsPage() {
           {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-full h-48" /></div>
           : dailyStats.length === 0 || dailyStats.every(d => d.runs === 0) ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无运行数据</p></div>
           : (<ResponsiveContainer width="100%" height={280}><LineChart data={dailyStats} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} /><XAxis dataKey="dateLabel" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} /><YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} /><Tooltip isAnimationActive={false} contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--foreground)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} /><Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} /><Line type="monotone" dataKey="items" name="抓取量" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4, fill: '#3B82F6' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="added" name="新增" stroke="#10B981" strokeWidth={2} dot={{ r: 4, fill: '#10B981' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="updated" name="更新" stroke="#F59E0B" strokeWidth={2} dot={{ r: 4, fill: '#F59E0B' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="runs" name="运行次数" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 4, fill: '#8B5CF6' }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>)}
+        </div>
+      </div>
+
+      {/* Hot Search Keywords */}
+      <div className="rounded-xl bg-card border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Search className="w-4 h-4 text-muted-foreground" /> 热门搜索词（近30天）
+          </h3>
+        </div>
+        <div className="p-5">
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+            </div>
+          ) : hotSearch.length === 0 ? (
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground">
+              <Inbox className="w-10 h-10 mb-2 opacity-40" />
+              <p className="text-sm">暂无搜索数据</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {hotSearch.map((item, i) => {
+                const maxCount = hotSearch[0]?.count || 1;
+                const pct = (item.count / maxCount) * 100;
+                const barColors = ['bg-blue-500', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500', 'bg-rose-500'];
+                const colorClass = barColors[i % barColors.length];
+                return (
+                  <div key={item.keyword} className="p-3 rounded-lg bg-secondary/50 border border-border hover:border-foreground/10 transition-colors">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{item.keyword}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${colorClass}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">{item.count}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
