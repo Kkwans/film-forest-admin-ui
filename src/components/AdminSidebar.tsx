@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Film, Upload, BarChart3, Settings, Database, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Film, Upload, BarChart3, Settings, Database, Tag, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/crawler', label: '爬虫管理', icon: Upload },
   { href: '/stats', label: '数据统计', icon: BarChart3 },
   { href: '/resources', label: '资源管理', icon: Database },
+  { href: '/tags', label: '标签管理', icon: Tag },
   { href: '/settings', label: '系统设置', icon: Settings },
 ];
 

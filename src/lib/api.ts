@@ -285,4 +285,22 @@ export const statsApi = {
   getHotSearch: (days?: number, limit?: number) => adminClient.get('/api/stats/hot-search', { params: { days, limit } }),
 };
 
+// ---- Tags ----
+
+export interface TagItem {
+  id: number;
+  name: string;
+  color?: string;
+  usageCount?: number;
+}
+
+export const tagApi = {
+  list: () => client.get('/api/tags'),
+  create: (data: { name: string; color?: string }) => client.post('/api/tags', data),
+  update: (id: number, data: { name?: string; color?: string }) => client.put(`/api/tags/${id}`, data),
+  delete: (id: number) => client.delete(`/api/tags/${id}`),
+  getContentTags: (contentType: string, contentId: number) => client.get(`/api/tags/content/${contentType}/${contentId}`),
+  setContentTags: (contentType: string, contentId: number, tagIds: number[]) => client.put(`/api/tags/content/${contentType}/${contentId}`, { tagIds }),
+};
+
 export default client;
