@@ -12,7 +12,7 @@ import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus,
 // ========== 类型定义 ==========
 interface SourceOption { id: number; name: string; url: string; type: string; enabled: number; }
 // 爬虫状态 API 返回结构（直接返回 data，非 Result 包装）
-interface CrawlerStatusResponse { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
+interface CrawlerStatusData { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
 interface CrawlerScheduleItem { id: number; name: string; contentType: string; sourceSite: string; enabled: number; status: string; totalRuns: number; totalItems: number; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string | null; lastRunTime: string | null; nextRunTime: string | null; }
 interface LogResult { code: number; data: CrawlerTaskLog[]; }
 interface SourcesResult { code: number; data: SourceOption[]; }
@@ -293,13 +293,14 @@ export default function CrawlerPage() {
 
   const fetchSchedules = useCallback(async () => {
     try {
-      const res = await crawlerApi.getStatus() as AxiosResponse<CrawlerStatusResponse>;
-      const data = res.data?.schedules || [];
+      const res = await crawlerApi.getStatus() as AxiosResponse<{ code: number; data: CrawlerStatusData }>;
+      const statusData = res.data?.data;
+      const data = statusData?.schedules || [];
       setSchedules(data);
       setStats({
-        total: data.length,
-        running: data.filter((s: CrawlerScheduleItem) => s.status === 'running').length,
-        idle: data.filter((s: CrawlerScheduleItem) => s.status !== 'running').length,
+        total: statusData?.total ?? data.length,
+        running: statusData?.running ?? data.filter((s: CrawlerScheduleItem) => s.status === 'running').length,
+        idle: statusData?.idle ?? data.filter((s: CrawlerScheduleItem) => s.status !== 'running').length,
       });
     } catch (e) {
       console.error('fetch schedules error', e);
