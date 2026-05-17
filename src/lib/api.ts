@@ -131,6 +131,9 @@ export const crawlerApi = {
   /** 获取状态概览 */
   getStatus: () => adminClient.get('/api/crawler/status'),
 
+  /** 获取爬虫每日运行趋势（近7天） */
+  getDailyStats: () => adminClient.get('/api/crawler/daily-stats'),
+
   /** 获取资源来源列表 */
   listSources: () => adminClient.get('/api/crawler/sources'),
 };

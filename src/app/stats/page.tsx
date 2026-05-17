@@ -6,9 +6,10 @@ import { contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 
 interface Stats { movies: number; dramas: number; varieties: number; animes: number; shortDramas: number; }
+interface DailyStatsItem { date: string; dateLabel: string; runs: number; items: number; added: number; updated: number; }
 interface CrawlerStats { total: number; running: number; idle: number; totalRuns: number; totalItems: number; schedules: CrawlerScheduleItem[]; }
 interface CrawlerScheduleItem { name: string; contentType: string; totalRuns: number; totalItems: number; status: string; }
 interface CrawlerStatusResult { code: number; data: CrawlerStatusResponse; }
@@ -21,15 +22,17 @@ const TYPE_LABELS: Record<string, string> = { movie: '电影', drama: '剧集', 
 export default function StatsPage() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
   const [crawlerStats, setCrawlerStats] = useState<CrawlerStats>({ total: 0, running: 0, idle: 0, totalRuns: 0, totalItems: 0, schedules: [] });
+  const [dailyStats, setDailyStats] = useState<DailyStatsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [statsRes, crawlerRes] = await Promise.all([
+        const [statsRes, crawlerRes, dailyRes] = await Promise.all([
           contentApi.getStats() as Promise<AxiosResponse<ApiResult<Stats>>>,
           crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResult>>,
+          crawlerApi.getDailyStats() as Promise<AxiosResponse<ApiResult<DailyStatsItem[]>>>,
         ]);
         if (statsRes.data?.code === 200) setStats(statsRes.data.data);
         if (crawlerRes.data?.code === 200) {
@@ -37,6 +40,7 @@ export default function StatsPage() {
           const schedules = d.schedules || [];
           setCrawlerStats({ total: d.total || 0, running: d.running || 0, idle: d.idle || 0, totalRuns: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalRuns || 0), 0), totalItems: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalItems || 0), 0), schedules });
         }
+        if (dailyRes.data?.code === 200) setDailyStats(dailyRes.data.data || []);
       } catch (e) {
         console.error(e);
         toast.error('统计数据加载失败');
@@ -83,6 +87,16 @@ export default function StatsPage() {
           <div className="text-2xl mb-2">📊</div>
           <p className="text-xs text-primary/70 mb-1">内容总量</p>
           <p className="text-xl font-bold text-primary">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Crawler Trend Line Chart */}
+      <div className="rounded-xl bg-card border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫运行趋势（近7天）</h3></div>
+        <div className="p-5">
+          {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-full h-48" /></div>
+          : dailyStats.length === 0 || dailyStats.every(d => d.runs === 0) ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无运行数据</p></div>
+          : (<ResponsiveContainer width="100%" height={280}><LineChart data={dailyStats} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} /><XAxis dataKey="dateLabel" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} /><YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} /><Tooltip isAnimationActive={false} contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--foreground)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} /><Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} /><Line type="monotone" dataKey="items" name="抓取量" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4, fill: '#3B82F6' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="added" name="新增" stroke="#10B981" strokeWidth={2} dot={{ r: 4, fill: '#10B981' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="updated" name="更新" stroke="#F59E0B" strokeWidth={2} dot={{ r: 4, fill: '#F59E0B' }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="runs" name="运行次数" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 4, fill: '#8B5CF6' }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>)}
         </div>
       </div>
 
