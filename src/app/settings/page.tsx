@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [dbInfo, setDbInfo] = useState<Record<string, string>>({});
 
   useEffect(() => {
     settingsApi.getSettings().then(res => {
@@ -47,6 +48,11 @@ export default function SettingsPage() {
         }));
       }
     }).catch(e => console.error('加载设置失败', e)).finally(() => setLoading(false));
+    settingsApi.getDbInfo().then(res => {
+      if (res.data?.code === 200 && res.data.data) {
+        setDbInfo(res.data.data);
+      }
+    }).catch(() => {});
   }, []);
 
   const update = (key: keyof SettingsData, value: string) => {
@@ -232,30 +238,30 @@ export default function SettingsPage() {
             <div className="p-4 rounded-lg bg-muted/30 border border-border">
               <div className="flex items-center gap-2 mb-2">
                 <Server className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">主机地址</span>
+                <span className="text-xs text-muted-foreground">数据库产品</span>
               </div>
-              <p className="text-sm font-mono text-foreground">192.168.5.110:3306</p>
+              <p className="text-sm text-foreground">{dbInfo.productName || '加载中...'}</p>
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border">
               <div className="flex items-center gap-2 mb-2">
                 <HardDrive className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">数据库名</span>
+                <span className="text-xs text-muted-foreground">版本</span>
               </div>
-              <p className="text-sm font-mono text-foreground">film_forest</p>
+              <p className="text-sm font-mono text-foreground">{dbInfo.productVersion || '加载中...'}</p>
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border">
               <div className="flex items-center gap-2 mb-2">
                 <Database className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">数据库引擎</span>
+                <span className="text-xs text-muted-foreground">驱动</span>
               </div>
-              <p className="text-sm text-foreground">MySQL 8.0</p>
+              <p className="text-sm text-foreground">{dbInfo.driverName || '加载中...'}</p>
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border">
               <div className="flex items-center gap-2 mb-2">
                 <Palette className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">字符集</span>
+                <span className="text-xs text-muted-foreground">驱动版本</span>
               </div>
-              <p className="text-sm text-foreground">utf8mb4</p>
+              <p className="text-sm text-foreground">{dbInfo.driverVersion || '加载中...'}</p>
             </div>
           </div>
         </CardContent>

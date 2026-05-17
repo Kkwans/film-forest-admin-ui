@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                     ? 'bg-primary/15 text-primary border border-primary/20'
                     : 'bg-muted text-muted-foreground border border-border'
                 }`}>
-                  {item.status === 1 ? '上线' : '下线'}
+                  {item.status === 1 ? '已上线' : '已下线'}
                 </span>
               </div>
             ))}

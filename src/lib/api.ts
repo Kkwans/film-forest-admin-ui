@@ -262,6 +262,8 @@ export const settingsApi = {
   /** 获取单个设置 */
   getSetting: (key: string, defaultValue?: string) =>
     adminClient.get(`/api/settings/${key}`, { params: { defaultValue } }),
+  /** 获取数据库元信息 */
+  getDbInfo: () => adminClient.get('/api/settings/db-info'),
 };
 
 export default client;
