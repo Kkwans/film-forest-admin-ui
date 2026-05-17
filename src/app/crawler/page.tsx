@@ -110,9 +110,31 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
   }, [value]);
 
   const update = (newMode: CronMode, newInterval?: string, newHour?: string, newMinute?: string, newDom?: string, newDow?: string[]) => {
-    const m = newMode || mode;
-    const result = buildCron(m, newInterval || interval, newHour || hour, newMinute || minute, newDom || dom, newDow || dow);
+    const result = buildCron(newMode, newInterval || interval, newHour || hour, newMinute || minute, newDom || dom, newDow || dow);
     onChange(result);
+  };
+
+  const handleModeChange = (newMode: CronMode) => {
+    setMode(newMode);
+    // 从当前 cron 中提取时分，确保模式切换时不丢失时间设置
+    const parts = (value || '').split(' ');
+    const curMin = parts.length === 5 ? parts[0] : minute;
+    const curHour = parts.length === 5 ? parts[1] : hour;
+    if (newMode === 'interval') {
+      update(newMode, interval);
+    } else if (newMode === 'daily') {
+      setHour(curHour);
+      setMinute(curMin);
+      update(newMode, undefined, curHour, curMin);
+    } else if (newMode === 'weekly') {
+      setHour(curHour);
+      setMinute(curMin);
+      update(newMode, undefined, curHour, curMin);
+    } else if (newMode === 'monthly') {
+      setHour(curHour);
+      setMinute(curMin);
+      update(newMode, undefined, curHour, curMin);
+    }
   };
 
   const hourOptions = Array.from({ length: 24 }, (_, i) => ({ label: `${String(i).padStart(2, '0')}时`, value: String(i) }));
@@ -129,7 +151,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
           { key: 'weekly' as CronMode, label: '每周定时' },
           { key: 'monthly' as CronMode, label: '每月定时' },
         ]).map(opt => (
-          <button key={opt.key} type="button" onClick={() => { setMode(opt.key); update(opt.key); }}
+          <button key={opt.key} type="button" onClick={() => handleModeChange(opt.key)}
             className={`px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors ${mode === opt.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
             {opt.label}
           </button>
@@ -146,6 +168,28 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
                 {opt.label}
               </button>
             ))}
+          </div>
+          {/* 自定义间隔输入 */}
+          <div className="flex items-center gap-2 mt-1">
+            <label className="text-xs text-muted-foreground">自定义：</label>
+            <input
+              type="number"
+              min={1}
+              max={1440}
+              placeholder="分钟"
+              className="w-20 h-8 px-2 rounded-lg border bg-background text-foreground text-xs"
+              onChange={e => {
+                const val = parseInt(e.target.value);
+                if (val > 0 && val <= 1440) {
+                  const cron = val >= 60 && val % 60 === 0
+                    ? `0 */${val / 60} * * *`
+                    : `*/${val} * * * *`;
+                  setInterval(cron);
+                  onChange(cron);
+                }
+              }}
+            />
+            <span className="text-xs text-muted-foreground">分钟</span>
           </div>
         </div>
       )}
