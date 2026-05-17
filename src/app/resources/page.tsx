@@ -367,10 +367,11 @@ export default function ResourcesPage() {
   };
 
   // ===== 筛选栏组件 =====
-  function FilterBar({ filter, setFilter, onSearch, type }: {
+  function FilterBar({ filter, setFilter, onSearch, onReset, type }: {
     filter: { contentType: string; keyword: string };
     setFilter: (f: { contentType: string; keyword: string }) => void;
     onSearch: () => void;
+    onReset: () => void;
     type: 'magnet' | 'cloud';
   }) {
     return (
@@ -398,7 +399,7 @@ export default function ResourcesPage() {
           筛选
         </button>
         {(filter.contentType || filter.keyword) && (
-          <button onClick={() => { setFilter({ contentType: '', keyword: '' }); }} className="h-8 px-3 rounded-lg border text-xs text-muted-foreground hover:bg-muted transition-colors">
+          <button onClick={onReset} className="h-8 px-3 rounded-lg border text-xs text-muted-foreground hover:bg-muted transition-colors">
             重置
           </button>
         )}
@@ -594,7 +595,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.magnet && (
         <CardContent>
-          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} type="magnet" />
+          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} onReset={() => { setMagnetFilter({ contentType: '', keyword: '' }); fetchMagnets(1, { contentType: '', keyword: '' }); }} type="magnet" />
           {magnetLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
@@ -666,7 +667,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.cloud && (
         <CardContent>
-          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} type="cloud" />
+          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} onReset={() => { setCloudFilter({ contentType: '', keyword: '' }); fetchClouds(1, { contentType: '', keyword: '' }); }} type="cloud" />
           {cloudLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...

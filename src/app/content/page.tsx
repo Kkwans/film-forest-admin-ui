@@ -208,11 +208,6 @@ export default function ContentPage() {
     }
   };
 
-  const handlePreview = (item: ContentRecord) => {
-    // 在新窗口打开七味网详情页
-    window.open(`https://www.pkmp4.xyz/mv/${item.id}.html`, '_blank');
-  };
-
   const [editingItem, setEditingItem] = useState<ContentRecord | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [detailItem, setDetailItem] = useState<ContentRecord | null>(null);
