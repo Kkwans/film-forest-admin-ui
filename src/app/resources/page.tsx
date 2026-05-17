@@ -367,7 +367,7 @@ export default function ResourcesPage() {
             <CardTitle className="text-foreground flex items-center gap-2">
               <Link2 className="w-5 h-5" /> 资源来源
             </CardTitle>
-            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-foreground transition-colors">
+            <button onClick={handleAddSource} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors">
               <Plus className="w-3 h-3" /> 新增来源
             </button>
           </div>
