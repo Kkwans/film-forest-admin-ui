@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, Activity, Database, Inbox } from 'lucide-react';
-import { contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
+import { BarChart3, Activity, Database, Inbox, TrendingUp, CheckCircle2, XCircle, Users } from 'lucide-react';
+import { statsApi, contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 
+// ---- Types ----
 interface Stats { movies: number; dramas: number; varieties: number; animes: number; shortDramas: number; }
 interface DailyStatsItem { date: string; dateLabel: string; runs: number; items: number; added: number; updated: number; }
 interface CrawlerStats { total: number; running: number; idle: number; totalRuns: number; totalItems: number; schedules: CrawlerScheduleItem[]; }
@@ -16,29 +17,56 @@ interface CrawlerStatusResult { code: number; data: CrawlerStatusResponse; }
 interface CrawlerStatusResponse { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
 interface ApiResult<T> { code: number; data: T; }
 
+interface OverviewData {
+  typeCounts: Record<string, number>;
+  totalContent: number;
+  weekGrowth: Record<string, number>;
+  totalWeekGrowth: number;
+  crawler: { totalRuns: number; successRuns: number; failedRuns: number; successRate: number; totalItemsCrawled: number; };
+  resources: { online: number; magnet: number; cloud: number; total: number; };
+  totalUsers: number;
+}
+
+interface TrendData {
+  dates: string[];
+  series: Record<string, Record<string, number>>;
+  labels: Record<string, string>;
+}
+
 const COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'];
 const TYPE_LABELS: Record<string, string> = { movie: '电影', drama: '剧集', variety: '综艺', anime: '动漫', short_drama: '短剧', short: '短剧' };
+const TYPE_ICONS: Record<string, string> = { movie: '🎬', drama: '📺', variety: '🎤', anime: '🎯', short_drama: '⚡' };
+const TYPE_ORDER = ['movie', 'drama', 'variety', 'anime', 'short_drama'];
 
 export default function StatsPage() {
-  const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [trend, setTrend] = useState<TrendData | null>(null);
   const [crawlerStats, setCrawlerStats] = useState<CrawlerStats>({ total: 0, running: 0, idle: 0, totalRuns: 0, totalItems: 0, schedules: [] });
   const [dailyStats, setDailyStats] = useState<DailyStatsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const [statsRes, crawlerRes, dailyRes] = await Promise.all([
-          contentApi.getStats() as Promise<AxiosResponse<ApiResult<Stats>>>,
+        const [overviewRes, trendRes, crawlerRes, dailyRes] = await Promise.all([
+          statsApi.getOverview() as Promise<AxiosResponse<ApiResult<OverviewData>>>,
+          statsApi.getTrend(30) as Promise<AxiosResponse<ApiResult<TrendData>>>,
           crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResult>>,
           crawlerApi.getDailyStats() as Promise<AxiosResponse<ApiResult<DailyStatsItem[]>>>,
         ]);
-        if (statsRes.data?.code === 200) setStats(statsRes.data.data);
+
+        if (overviewRes.data?.code === 200) setOverview(overviewRes.data.data);
+        if (trendRes.data?.code === 200) setTrend(trendRes.data.data);
         if (crawlerRes.data?.code === 200) {
           const d = crawlerRes.data.data;
           const schedules = d.schedules || [];
-          setCrawlerStats({ total: d.total || 0, running: d.running || 0, idle: d.idle || 0, totalRuns: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalRuns || 0), 0), totalItems: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalItems || 0), 0), schedules });
+          setCrawlerStats({
+            total: d.total || 0, running: d.running || 0, idle: d.idle || 0,
+            totalRuns: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalRuns || 0), 0),
+            totalItems: schedules.reduce((s: number, x: CrawlerScheduleItem) => s + (x.totalItems || 0), 0),
+            schedules,
+          });
         }
         if (dailyRes.data?.code === 200) setDailyStats(dailyRes.data.data || []);
       } catch (e) {
@@ -46,19 +74,23 @@ export default function StatsPage() {
         toast.error('统计数据加载失败');
       } finally { setLoading(false); }
     };
-    fetchStats();
+    fetchData();
   }, []);
 
-  const total = stats.movies + stats.dramas + stats.varieties + stats.animes + stats.shortDramas;
-  const pieData = [{ name: '电影', value: stats.movies }, { name: '剧集', value: stats.dramas }, { name: '综艺', value: stats.varieties }, { name: '动漫', value: stats.animes }, { name: '短剧', value: stats.shortDramas }].filter(d => d.value > 0);
+  // ---- Derived data ----
+  const total = overview?.totalContent ?? 0;
+  const pieData = overview ? TYPE_ORDER.map(t => ({ name: TYPE_LABELS[t] || t, value: overview.typeCounts[t] || 0 })).filter(d => d.value > 0) : [];
   const barData = crawlerStats.schedules.map(s => ({ name: (TYPE_LABELS[s.contentType] || s.contentType).replace(/.*\s/, ''), runs: s.totalRuns || 0, items: s.totalItems || 0 }));
-  const contentStats = [
-    { label: '电影', value: stats.movies, icon: '🎬' },
-    { label: '剧集', value: stats.dramas, icon: '📺' },
-    { label: '综艺', value: stats.varieties, icon: '🎤' },
-    { label: '动漫', value: stats.animes, icon: '🎯' },
-    { label: '短剧', value: stats.shortDramas, icon: '⚡' },
-  ];
+  const contentStats = overview ? TYPE_ORDER.map(t => ({ label: TYPE_LABELS[t] || t, value: overview.typeCounts[t] || 0, icon: TYPE_ICONS[t] || '📄', growth: overview.weekGrowth[t] || 0 })) : [];
+
+  // Build trend chart data from the new trend API
+  const trendChartData = trend ? trend.dates.map(date => {
+    const point: Record<string, string | number> = { date: date.slice(5) }; // MM-DD
+    for (const t of TYPE_ORDER) {
+      point[TYPE_LABELS[t] || t] = trend.series[t]?.[date] || 0;
+    }
+    return point;
+  }) : [];
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) => {
     if (active && payload?.length) {
@@ -73,24 +105,71 @@ export default function StatsPage() {
     <div className="flex flex-col gap-8">
       <div><h1 className="text-2xl font-bold text-foreground mb-1">数据统计</h1><p className="text-sm text-muted-foreground">内容数据与爬虫运行详细分析</p></div>
 
-      {/* Overview Cards */}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+        <div className="relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4">
+          <div className="text-2xl mb-2">📊</div>
+          <p className="text-xs text-primary/70 mb-1">内容总量</p>
+          <p className="text-xl font-bold text-primary">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
+          {overview && overview.totalWeekGrowth > 0 && <p className="text-xs mt-1 text-green-500">+{overview.totalWeekGrowth} 本周</p>}
+        </div>
+        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
+          <div className="text-2xl mb-2">🤖</div>
+          <p className="text-xs text-muted-foreground mb-1">爬虫成功率</p>
+          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : `${overview?.crawler.successRate ?? 0}%`}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{overview?.crawler.totalRuns ?? 0} 次运行</p>
+        </div>
+        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
+          <div className="text-2xl mb-2">📦</div>
+          <p className="text-xs text-muted-foreground mb-1">资源总数</p>
+          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.resources.total ?? 0).toLocaleString()}</p>
+          <p className="text-xs mt-1 text-muted-foreground">在线 {overview?.resources.online ?? 0} · 磁力 {overview?.resources.magnet ?? 0}</p>
+        </div>
+        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
+          <div className="text-2xl mb-2">👥</div>
+          <p className="text-xs text-muted-foreground mb-1">用户数</p>
+          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.totalUsers ?? 0).toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Content Type Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {contentStats.map((stat, i) => (
           <div key={stat.label} className="relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/10 transition-colors group">
             <div className="text-2xl mb-2">{stat.icon}</div>
             <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
             <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : stat.value.toLocaleString()}</p>
-            {total > 0 && <p className="text-xs mt-1" style={{ color: COLORS[i] }}>{((stat.value / total) * 100).toFixed(1)}%</p>}
+            <div className="flex items-center gap-1 mt-1">
+              {total > 0 && <span className="text-xs" style={{ color: COLORS[i] }}>{((stat.value / total) * 100).toFixed(1)}%</span>}
+              {stat.growth > 0 && <span className="text-xs text-green-500 ml-auto">+{stat.growth}</span>}
+            </div>
           </div>
         ))}
-        <div className="relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4">
-          <div className="text-2xl mb-2">📊</div>
-          <p className="text-xs text-primary/70 mb-1">内容总量</p>
-          <p className="text-xl font-bold text-primary">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
+      </div>
+
+      {/* Content Growth Trend (30 days) */}
+      <div className="rounded-xl bg-card border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><TrendingUp className="w-4 h-4 text-muted-foreground" /> 内容增长趋势（近30天）</h3></div>
+        <div className="p-5">
+          {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-full h-48" /></div>
+          : !trend || trendChartData.length === 0 || trendChartData.every(d => TYPE_ORDER.every(t => (d[TYPE_LABELS[t] || t] as number) === 0)) ?
+            <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无增长数据</p></div>
+          : (<ResponsiveContainer width="100%" height={280}>
+              <LineChart data={trendChartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip isAnimationActive={false} contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--foreground)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+                <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} />
+                {TYPE_ORDER.map((t, i) => (
+                  <Line key={t} type="monotone" dataKey={TYPE_LABELS[t] || t} stroke={COLORS[i]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>)}
         </div>
       </div>
 
-      {/* Crawler Trend Line Chart */}
+      {/* Crawler Trend Line Chart (7 days) */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
         <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫运行趋势（近7天）</h3></div>
         <div className="p-5">

@@ -266,4 +266,12 @@ export const settingsApi = {
   getDbInfo: () => adminClient.get('/api/settings/db-info'),
 };
 
+// 数据统计 API
+export const statsApi = {
+  /** 数据概览（各类型数量 + 7日增长 + 爬虫成功率 + 资源统计） */
+  getOverview: () => adminClient.get('/api/stats/overview'),
+  /** 内容增长趋势（近N天） */
+  getTrend: (days?: number) => adminClient.get('/api/stats/trend', { params: { days } }),
+};
+
 export default client;
