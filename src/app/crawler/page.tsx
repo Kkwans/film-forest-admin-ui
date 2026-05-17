@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
-import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2, RotateCcw, Filter, CheckCircle, XCircle, AlertTriangle, StopCircle } from 'lucide-react';
 
 // ========== 类型定义 ==========
 interface SourceOption { id: number; name: string; url: string; type: string; enabled: number; }
@@ -331,6 +331,10 @@ export default function CrawlerPage() {
   const [showLogs, setShowLogs] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsLoaded, setLogsLoaded] = useState(false);
+  const [logStatusFilter, setLogStatusFilter] = useState<string>('all');
+  const [logStats, setLogStats] = useState<{ total: number; byStatus: Record<string, number>; recentFailed: CrawlerTaskLog[] } | null>(null);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [retryAllLoading, setRetryAllLoading] = useState(false);
   const [genres, setGenres] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sources, setSources] = useState<SourceOption[]>([]);
@@ -353,10 +357,12 @@ export default function CrawlerPage() {
     }
   }, []);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (status?: string) => {
     try {
       setLogsLoading(true);
-      const res = await crawlerApi.listLogs() as AxiosResponse<LogResult>;
+      const params: { status?: string } = {};
+      if (status && status !== 'all') params.status = status;
+      const res = await crawlerApi.listLogs(params) as AxiosResponse<LogResult>;
       setLogs(res.data?.data || []);
       setLogsLoaded(true);
     } catch (e) {
@@ -366,14 +372,31 @@ export default function CrawlerPage() {
     }
   }, []);
 
+  const fetchLogStats = useCallback(async () => {
+    try {
+      const res = await crawlerApi.getLogStats() as AxiosResponse<{ code: number; data: { total: number; byStatus: Record<string, number>; recentFailed: CrawlerTaskLog[] } }>;
+      if (res.data?.code === 200) setLogStats(res.data.data);
+    } catch (e) {
+      console.error('fetch log stats error', e);
+    }
+  }, []);
+
   useEffect(() => { fetchSchedules(); }, [fetchSchedules]);
 
-  // 预加载日志（获取条数）
+  // 预加载日志和统计
   useEffect(() => {
     if (!logsLoaded) {
       fetchLogs();
+      fetchLogStats();
     }
-  }, [logsLoaded, fetchLogs]);
+  }, [logsLoaded, fetchLogs, fetchLogStats]);
+
+  // 状态筛选变化时重新获取
+  useEffect(() => {
+    if (logsLoaded) {
+      fetchLogs(logStatusFilter);
+    }
+  }, [logStatusFilter]);
 
   // 加载资源来源列表
   useEffect(() => {
@@ -478,6 +501,71 @@ export default function CrawlerPage() {
     setEditingId(null);
     setSelectedGenres([]);
     setShowForm(true);
+  };
+
+  const handleRetry = async (logId: number) => {
+    setRetryingId(logId);
+    try {
+      const res = await crawlerApi.retry(logId) as AxiosResponse<{ code: number; message?: string }>;
+      if (res.data?.code === 200) {
+        toast.success('重试任务已启动');
+        await fetchSchedules();
+        await fetchLogs(logStatusFilter);
+        await fetchLogStats();
+      } else {
+        toast.error(res.data?.message || '重试失败');
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '重试失败');
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleRetryAll = async () => {
+    const ok = await dialog.confirm({
+      title: '批量重试',
+      content: '将重新启动所有失败/停止的爬虫配置，确定继续？',
+      confirmText: '全部重试',
+      cancelText: '取消',
+    });
+    if (!ok) return;
+    setRetryAllLoading(true);
+    try {
+      const res = await crawlerApi.retryAll() as AxiosResponse<{ code: number; data?: { started: number; skipped: number; message?: string } }>;
+      if (res.data?.code === 200) {
+        const d = res.data.data;
+        toast.success(`已启动 ${d?.started || 0} 个重试任务`);
+        await fetchSchedules();
+        await fetchLogs(logStatusFilter);
+        await fetchLogStats();
+      } else {
+        toast.error('批量重试失败');
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '批量重试失败');
+    } finally {
+      setRetryAllLoading(false);
+    }
+  };
+
+  // 状态标签渲染
+  const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+    success: { label: '成功', icon: <CheckCircle className="w-3 h-3" />, className: 'bg-primary/20 text-primary dark:text-primary' },
+    failed: { label: '失败', icon: <XCircle className="w-3 h-3" />, className: 'bg-destructive/20 text-destructive' },
+    running: { label: '运行中', icon: <Loader2 className="w-3 h-3 animate-spin" />, className: 'bg-blue-500/20 text-blue-500' },
+    stopped: { label: '已停止', icon: <StopCircle className="w-3 h-3" />, className: 'bg-orange-500/20 text-orange-500' },
+    pending_retry: { label: '等待重试', icon: <RotateCcw className="w-3 h-3" />, className: 'bg-yellow-500/20 text-yellow-600' },
+  };
+
+  const renderStatusBadge = (status: string) => {
+    const config = STATUS_CONFIG[status] || { label: status, icon: null, className: 'bg-muted text-muted-foreground' };
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+        {config.icon}
+        {config.label}
+      </span>
+    );
   };
 
   return (
@@ -636,9 +724,19 @@ export default function CrawlerPage() {
                     <td className="p-3 text-muted-foreground hidden lg:table-cell">{PRIORITY_OPTIONS.find(o => o.value === s.priority)?.label || s.priority}</td>
                     <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{timeAgo(s.lastRunTime)}</td>
                     <td className="p-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-primary/20 text-primary dark:text-primary' : 'bg-muted text-muted-foreground'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-primary' : 'bg-muted-foreground'}`} />
-                        {isRunning ? '运行中' : '空闲'}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        isRunning ? 'bg-blue-500/20 text-blue-500' :
+                        s.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                        s.status === 'pending_retry' ? 'bg-yellow-500/20 text-yellow-600' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          isRunning ? 'bg-blue-500' :
+                          s.status === 'failed' ? 'bg-destructive' :
+                          s.status === 'pending_retry' ? 'bg-yellow-500' :
+                          'bg-muted-foreground'
+                        } ${isRunning ? 'animate-pulse' : ''}`} />
+                        {isRunning ? '运行中' : s.status === 'failed' ? '上次失败' : s.status === 'pending_retry' ? '等待重试' : '空闲'}
                       </span>
                     </td>
                     <td className="p-3 text-right">
@@ -686,9 +784,13 @@ export default function CrawlerPage() {
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">{TYPE_MAP[s.contentType] || s.contentType}</span>
                       <span className="text-xs text-muted-foreground font-mono">{s.cronExpression}</span>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isRunning ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-primary' : 'bg-muted-foreground'}`} />
-                        {isRunning ? '运行中' : '空闲'}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        isRunning ? 'bg-blue-500/20 text-blue-500' :
+                        s.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-blue-500' : s.status === 'failed' ? 'bg-destructive' : 'bg-muted-foreground'}`} />
+                        {isRunning ? '运行中' : s.status === 'failed' ? '上次失败' : '空闲'}
                       </span>
                     </div>
                   </div>
@@ -730,12 +832,95 @@ export default function CrawlerPage() {
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-muted-foreground" />
             <span className="font-medium text-foreground">任务日志</span>
-            <span className="text-xs text-muted-foreground">({logs.length} 条)</span>
+            <span className="text-xs text-muted-foreground">({logStats?.total ?? logs.length} 条)</span>
+            {logStats?.byStatus?.failed ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive">
+                {logStats.byStatus.failed} 失败
+              </span>
+            ) : null}
           </div>
           {showLogs ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </button>
         {showLogs && (
           <div className="border-t">
+            {/* 日志统计概览 */}
+            {logStats && (
+              <div className="p-4 border-b">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: 'all', label: '全部', count: logStats.total },
+                      { key: 'success', label: '成功', count: logStats.byStatus?.success || 0 },
+                      { key: 'failed', label: '失败', count: logStats.byStatus?.failed || 0 },
+                      { key: 'running', label: '运行中', count: logStats.byStatus?.running || 0 },
+                      { key: 'stopped', label: '已停止', count: logStats.byStatus?.stopped || 0 },
+                    ].map(tab => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setLogStatusFilter(tab.key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                          logStatusFilter === tab.key
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {tab.label}
+                        {tab.count > 0 && (
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                            logStatusFilter === tab.key ? 'bg-primary-foreground/20' : 'bg-background/50'
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {logStats.byStatus?.failed ? (
+                    <button
+                      onClick={handleRetryAll}
+                      disabled={retryAllLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                    >
+                      <RotateCcw className={`w-3 h-3 ${retryAllLoading ? 'animate-spin' : ''}`} />
+                      重试全部失败
+                    </button>
+                  ) : null}
+                </div>
+                {/* 队列可视化条 */}
+                {logStats.total > 0 && (
+                  <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+                    {logStats.byStatus?.success ? (
+                      <div
+                        className="bg-primary transition-all"
+                        style={{ width: `${(logStats.byStatus.success / logStats.total) * 100}%` }}
+                        title={`成功 ${logStats.byStatus.success}`}
+                      />
+                    ) : null}
+                    {logStats.byStatus?.failed ? (
+                      <div
+                        className="bg-destructive transition-all"
+                        style={{ width: `${(logStats.byStatus.failed / logStats.total) * 100}%` }}
+                        title={`失败 ${logStats.byStatus.failed}`}
+                      />
+                    ) : null}
+                    {logStats.byStatus?.running ? (
+                      <div
+                        className="bg-blue-500 transition-all"
+                        style={{ width: `${(logStats.byStatus.running / logStats.total) * 100}%` }}
+                        title={`运行中 ${logStats.byStatus.running}`}
+                      />
+                    ) : null}
+                    {logStats.byStatus?.stopped ? (
+                      <div
+                        className="bg-orange-500 transition-all"
+                        style={{ width: `${(logStats.byStatus.stopped / logStats.total) * 100}%` }}
+                        title={`已停止 ${logStats.byStatus.stopped}`}
+                      />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            )}
             {logsLoading ? (
               <div className="p-8 text-center text-muted-foreground">
                 <RefreshCw className="w-5 h-5 animate-spin mr-2 inline" /> 加载中...
@@ -757,6 +942,7 @@ export default function CrawlerPage() {
                         <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">更新</th>
                         <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">耗时</th>
                         <th className="text-left p-3 font-medium text-muted-foreground">开始时间</th>
+                        <th className="text-right p-3 font-medium text-muted-foreground">操作</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -764,21 +950,24 @@ export default function CrawlerPage() {
                         <tr key={log.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="p-3 text-foreground font-medium">{log.scheduleName || '-'}</td>
                           <td className="p-3 text-muted-foreground text-xs">{TYPE_MAP[log.contentType] || log.contentType}</td>
-                          <td className="p-3">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              log.status === 'success' ? 'bg-primary/20 text-primary dark:text-primary' :
-                              log.status === 'failed' ? 'bg-destructive/20 text-destructive' :
-                              log.status === 'running' ? 'bg-primary/20 text-primary dark:text-primary' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              {log.status === 'success' ? '✅ 成功' : log.status === 'failed' ? '❌ 失败' : log.status === 'running' ? '🔄 运行中' : log.status}
-                            </span>
-                          </td>
+                          <td className="p-3">{renderStatusBadge(log.status)}</td>
                           <td className="p-3 text-muted-foreground">{log.itemsCrawled || 0}</td>
                           <td className="p-3 text-primary">+{log.itemsAdded || 0}</td>
                           <td className="p-3 text-primary hidden lg:table-cell">{log.itemsUpdated || 0}</td>
                           <td className="p-3 text-muted-foreground hidden lg:table-cell text-xs">{log.durationMs ? `${(log.durationMs / 1000).toFixed(1)}s` : '-'}</td>
                           <td className="p-3 text-muted-foreground text-xs">{formatTime(log.startedAt)}</td>
+                          <td className="p-3 text-right">
+                            {(log.status === 'failed' || log.status === 'stopped') && (
+                              <button
+                                onClick={() => handleRetry(log.id)}
+                                disabled={retryingId === log.id}
+                                className="p-1.5 rounded hover:bg-primary/20 text-primary disabled:opacity-50"
+                                title="重试此任务"
+                              >
+                                <RotateCcw className={`w-4 h-4 ${retryingId === log.id ? 'animate-spin' : ''}`} />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -790,14 +979,19 @@ export default function CrawlerPage() {
                     <div key={log.id} className="p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground truncate">{log.scheduleName || '-'}</p>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                          log.status === 'success' ? 'bg-primary/20 text-primary' :
-                          log.status === 'failed' ? 'bg-destructive/20 text-destructive' :
-                          log.status === 'running' ? 'bg-primary/20 text-primary' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {log.status === 'success' ? '✅' : log.status === 'failed' ? '❌' : log.status === 'running' ? '🔄' : ''}{log.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {renderStatusBadge(log.status)}
+                          {(log.status === 'failed' || log.status === 'stopped') && (
+                            <button
+                              onClick={() => handleRetry(log.id)}
+                              disabled={retryingId === log.id}
+                              className="p-1.5 rounded hover:bg-primary/20 text-primary disabled:opacity-50"
+                              title="重试"
+                            >
+                              <RotateCcw className={`w-3.5 h-3.5 ${retryingId === log.id ? 'animate-spin' : ''}`} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span>抓取: {log.itemsCrawled || 0}</span>
@@ -816,11 +1010,33 @@ export default function CrawlerPage() {
             )}
             {logs.some(l => l.errorMessage) && (
               <div className="p-4 border-t">
-                <p className="text-sm font-medium text-foreground mb-2">错误详情</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-foreground">错误详情</p>
+                  {logStats?.byStatus?.failed ? (
+                    <button
+                      onClick={handleRetryAll}
+                      disabled={retryAllLoading}
+                      className="flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
+                    >
+                      <RotateCcw className={`w-3 h-3 ${retryAllLoading ? 'animate-spin' : ''}`} />
+                      全部重试
+                    </button>
+                  ) : null}
+                </div>
                 {logs.filter(l => l.errorMessage).map((log) => (
-                  <div key={log.id} className="mb-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <p className="text-xs text-muted-foreground mb-1">{log.scheduleName} — {formatTime(log.startedAt)}</p>
-                    <p className="text-sm text-destructive break-all">{log.errorMessage}</p>
+                  <div key={log.id} className="mb-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">{log.scheduleName} — {formatTime(log.startedAt)}</p>
+                      <p className="text-sm text-destructive break-all">{log.errorMessage}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRetry(log.id)}
+                      disabled={retryingId === log.id}
+                      className="p-1.5 rounded hover:bg-destructive/20 text-destructive disabled:opacity-50 shrink-0"
+                      title="重试"
+                    >
+                      <RotateCcw className={`w-4 h-4 ${retryingId === log.id ? 'animate-spin' : ''}`} />
+                    </button>
                   </div>
                 ))}
               </div>

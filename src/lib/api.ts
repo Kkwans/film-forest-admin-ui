@@ -124,9 +124,18 @@ export const crawlerApi = {
   toggleEnabled: (id: number, enabled: boolean) =>
     adminClient.post(`/api/crawler/toggle/${id}?enabled=${enabled}`),
 
-  /** 获取任务日志 */
-  listLogs: (scheduleId?: number) =>
-    adminClient.get('/api/crawler/logs', { params: scheduleId ? { scheduleId } : {} }),
+  /** 获取任务日志（支持状态筛选） */
+  listLogs: (params?: { scheduleId?: number; status?: string }) =>
+    adminClient.get('/api/crawler/logs', { params: params || {} }),
+
+  /** 获取日志统计 */
+  getLogStats: () => adminClient.get('/api/crawler/logs/stats'),
+
+  /** 重试失败任务 */
+  retry: (logId: number) => adminClient.post(`/api/crawler/retry/${logId}`),
+
+  /** 批量重试所有失败任务 */
+  retryAll: () => adminClient.post('/api/crawler/retry-all'),
 
   /** 获取状态概览 */
   getStatus: () => adminClient.get('/api/crawler/status'),
