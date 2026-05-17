@@ -21,20 +21,19 @@ interface CloudResource {
   id: number;
   contentType: string;
   contentId: number;
-  episodeId: number | null;
   diskType: string;
   title: string;
   url: string;
   password: string;
   sort: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface MagnetResource {
   id: number;
   contentType: string;
   contentId: number;
-  episodeId: number | null;
   title: string;
   magnetUrl: string;
   resolution: string;
@@ -42,6 +41,7 @@ interface MagnetResource {
   isSpecialSub: boolean;
   sort: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface SourceSite {
@@ -247,39 +247,55 @@ export default function ResourcesPage() {
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
                 {/* Desktop header */}
-                <div className="hidden md:grid grid-cols-12 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                <div className="hidden md:grid grid-cols-16 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                  <div className="col-span-1">ID</div>
                   <div className="col-span-1">类型</div>
+                  <div className="col-span-1">内容ID</div>
                   <div className="col-span-2">标题</div>
-                  <div className="col-span-2">分辨率</div>
+                  <div className="col-span-1">分辨率</div>
                   <div className="col-span-2">字幕</div>
+                  <div className="col-span-1">排序</div>
                   <div className="col-span-4">磁力链接</div>
-                  <div className="col-span-1">时间</div>
+                  <div className="col-span-3">创建时间</div>
                 </div>
                 {magnets.map((m) => (
                   <div key={m.id}>
                     {/* Desktop row */}
-                    <div className="hidden md:grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                    <div className="hidden md:grid grid-cols-16 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                      <div className="col-span-1 text-muted-foreground text-xs">{m.id}</div>
                       <div className="col-span-1">
                         <Badge variant="outline" className="text-xs border-border text-muted-foreground">{m.contentType}</Badge>
                       </div>
+                      <div className="col-span-1">
+                        <a href={`/content?id=${m.contentId}`} className="text-xs text-primary hover:underline">#{m.contentId}</a>
+                      </div>
                       <div className="col-span-2 text-foreground truncate" title={m.title}>{m.title}</div>
-                      <div className="col-span-2">
+                      <div className="col-span-1">
                         <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-primary text-primary' : m.resolution === '4K' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
                       </div>
-                      <div className="col-span-2 text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</div>
-                      <div className="col-span-4 text-muted-foreground text-xs truncate" title={m.magnetUrl}>{m.magnetUrl ? m.magnetUrl.slice(0, 60) + '...' : '-'}</div>
-                      <div className="col-span-1 text-muted-foreground text-xs">{formatDate(m.createdAt)}</div>
+                      <div className="col-span-2 text-muted-foreground text-xs">
+                        {m.hasSubtitle ? '✅ 有字幕' : '—'}
+                        {m.isSpecialSub && <span className="ml-1 text-primary">特</span>}
+                      </div>
+                      <div className="col-span-1 text-muted-foreground text-xs">{m.sort ?? 0}</div>
+                      <div className="col-span-4 text-muted-foreground text-xs truncate" title={m.magnetUrl}>{m.magnetUrl ? m.magnetUrl.slice(0, 50) + '...' : '-'}</div>
+                      <div className="col-span-3 text-muted-foreground text-xs">{formatDate(m.createdAt)}</div>
                     </div>
                     {/* Mobile card */}
                     <div className="md:hidden flex flex-col gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm mb-2">
                       <div className="flex items-center gap-2 justify-between">
-                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{m.contentType}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs border-border text-muted-foreground">{m.contentType}</Badge>
+                          <span className="text-xs text-muted-foreground">ID: {m.id}</span>
+                        </div>
                         <span className="text-muted-foreground text-xs">{formatDate(m.createdAt)}</span>
                       </div>
                       <p className="text-foreground text-sm font-medium truncate">{m.title}</p>
                       <div className="flex items-center gap-2 flex-wrap">
+                        <a href={`/content?id=${m.contentId}`} className="text-xs text-primary hover:underline">内容#{m.contentId}</a>
                         <Badge variant="outline" className={`text-xs ${m.resolution === '1080P' ? 'border-primary text-primary' : m.resolution === '4K' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>{m.resolution}</Badge>
-                        <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}</span>
+                        <span className="text-muted-foreground text-xs">{m.hasSubtitle ? '✅ 有字幕' : '—'}{m.isSpecialSub && <span className="ml-1 text-primary">特</span>}</span>
+                        <span className="text-muted-foreground text-xs">排序: {m.sort ?? 0}</span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">{m.magnetUrl ? m.magnetUrl.slice(0, 80) + '...' : '-'}</p>
                     </div>
@@ -315,39 +331,52 @@ export default function ResourcesPage() {
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
-                <div className="hidden md:grid grid-cols-12 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                <div className="hidden md:grid grid-cols-16 gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+                  <div className="col-span-1">ID</div>
                   <div className="col-span-1">类型</div>
+                  <div className="col-span-1">内容ID</div>
                   <div className="col-span-2">标题</div>
                   <div className="col-span-2">网盘</div>
-                  <div className="col-span-5">链接</div>
                   <div className="col-span-1">密码</div>
-                  <div className="col-span-1">时间</div>
+                  <div className="col-span-1">排序</div>
+                  <div className="col-span-4">链接</div>
+                  <div className="col-span-3">创建时间</div>
                 </div>
                 {clouds.map((c) => (
                   <div key={c.id}>
-                    <div className="hidden md:grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                    <div className="hidden md:grid grid-cols-16 gap-2 items-center px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm">
+                      <div className="col-span-1 text-muted-foreground text-xs">{c.id}</div>
                       <div className="col-span-1">
                         <Badge variant="outline" className="text-xs border-border text-muted-foreground">{c.contentType}</Badge>
+                      </div>
+                      <div className="col-span-1">
+                        <a href={`/content?id=${c.contentId}`} className="text-xs text-primary hover:underline">#{c.contentId}</a>
                       </div>
                       <div className="col-span-2 text-foreground truncate" title={c.title}>{c.title}</div>
                       <div className="col-span-2">
                         <Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
                       </div>
-                      <div className="col-span-5 text-muted-foreground text-xs truncate">
-                        {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">{c.url.slice(0, 50)}...</a> : '-'}
-                      </div>
                       <div className="col-span-1 text-muted-foreground text-xs">{c.password || '-'}</div>
-                      <div className="col-span-1 text-muted-foreground text-xs">{formatDate(c.createdAt)}</div>
+                      <div className="col-span-1 text-muted-foreground text-xs">{c.sort ?? 0}</div>
+                      <div className="col-span-4 text-muted-foreground text-xs truncate">
+                        {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">{c.url.slice(0, 40)}...</a> : '-'}
+                      </div>
+                      <div className="col-span-3 text-muted-foreground text-xs">{formatDate(c.createdAt)}</div>
                     </div>
                     <div className="md:hidden flex flex-col gap-2 px-4 py-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors text-sm mb-2">
                       <div className="flex items-center gap-2 justify-between">
-                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">{c.contentType}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs border-border text-muted-foreground">{c.contentType}</Badge>
+                          <span className="text-xs text-muted-foreground">ID: {c.id}</span>
+                        </div>
                         <span className="text-muted-foreground text-xs">{formatDate(c.createdAt)}</span>
                       </div>
                       <p className="text-foreground text-sm font-medium truncate">{c.title}</p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <a href={`/content?id=${c.contentId}`} className="text-xs text-primary hover:underline">内容#{c.contentId}</a>
                         <Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
                         {c.password && <span className="text-muted-foreground text-xs">密码: {c.password}</span>}
+                        <span className="text-muted-foreground text-xs">排序: {c.sort ?? 0}</span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">{c.url ? c.url.slice(0, 80) + '...' : '-'}</p>
                     </div>
