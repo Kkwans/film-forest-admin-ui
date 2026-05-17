@@ -6,6 +6,7 @@ import AdminHeader from "@/components/AdminHeader";
 import PageTitle from "@/components/PageTitle";
 import { Providers } from "@/components/providers";
 import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,29 +21,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="h-full">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var root=document.documentElement;var mq=window.matchMedia('(prefers-color-scheme: dark)');function isDark(){return mq.matches}function applyClass(dark){if(dark){root.classList.add('dark')}else{root.classList.remove('dark')}}function apply(t){if(t==='dark'){applyClass(true)}else if(t==='light'){applyClass(false)}else{applyClass(isDark())}}mq.addEventListener('change',function(){if(localStorage.getItem('theme')==='system'){applyClass(isDark())}});var t=localStorage.getItem('theme');apply(t||'dark');window.__applyTheme=apply})()`,
-          }}
-        />
-      </head>
+    <html lang="zh-CN" className="h-full" suppressHydrationWarning>
       <body className={`${inter.className} min-h-full bg-background text-foreground`}>
-        <Providers>
-          <AuthProvider>
-            <PageTitle />
-            <div className="flex h-screen overflow-hidden">
-              <AdminSidebar />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <AdminHeader />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                  {children}
-                </main>
+        <ThemeProvider>
+          <Providers>
+            <AuthProvider>
+              <PageTitle />
+              <div className="flex h-screen overflow-hidden">
+                <AdminSidebar />
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <AdminHeader />
+                  <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-          </AuthProvider>
-        </Providers>
+            </AuthProvider>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );
