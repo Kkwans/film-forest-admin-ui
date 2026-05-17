@@ -78,7 +78,7 @@ export default function TagsPage() {
   const handleDelete = (tag: TagItem) => {
     dialog.confirm({
       title: '删除标签',
-      description: `确定要删除标签「${tag.name}」吗？关联的内容将自动解除关联。`,
+      content: `确定要删除标签「${tag.name}」吗？关联的内容将自动解除关联。`,
       onConfirm: async () => {
         try {
           await tagApi.delete(tag.id);

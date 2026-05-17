@@ -1,7 +1,25 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@base-ui/react",
+      "zustand",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
+      "recharts",
+    ],
+  },
+
   async rewrites() {
     return [
       {
@@ -12,4 +30,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
