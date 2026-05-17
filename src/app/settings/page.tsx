@@ -52,7 +52,7 @@ export default function SettingsPage() {
       if (res.data?.code === 200 && res.data.data) {
         setDbInfo(res.data.data);
       }
-    }).catch(() => {});
+    }).catch(e => console.error('加载数据库信息失败', e));
   }, []);
 
   const update = (key: keyof SettingsData, value: string) => {

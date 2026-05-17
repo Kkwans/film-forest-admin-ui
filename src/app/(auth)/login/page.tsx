@@ -21,7 +21,7 @@ export default function LoginPage() {
       fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (data.code === 200) router.push('/'); })
-        .catch(() => {})
+        .catch(e => console.error('检查登录状态失败', e))
         .finally(() => setCheckingAuth(false));
     } else {
       setCheckingAuth(false);

@@ -173,7 +173,7 @@ export default function ContentPage() {
   useEffect(() => {
     contentApi.getStats().then(res => {
       if (res.data?.code === 200) setStats(res.data.data);
-    }).catch(() => {});
+    }).catch(e => console.error('加载统计数据失败', e));
   }, []);
 
   const filtered = items;

@@ -380,7 +380,7 @@ export default function CrawlerPage() {
     crawlerApi.listSources().then((res: AxiosResponse<SourcesResult>) => {
       const data = res.data;
       if (data?.code === 200) setSources(data.data || []);
-    }).catch(() => {});
+    }).catch(e => console.error('加载资源来源失败', e));
   }, []);
 
   // 当 contentType 变化时加载 genre 列表

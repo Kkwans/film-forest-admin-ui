@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { resourceApi } from '@/lib/api';
+import { resourceApi, type SaveMagnetData, type SaveCloudData } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -254,7 +254,7 @@ export default function ResourcesPage() {
     if (!editingMagnet.magnetUrl?.trim()) { toast.error('磁力链接不能为空'); return; }
     if (!editingMagnet.contentId) { toast.error('内容ID不能为空'); return; }
     try {
-      await resourceApi.saveMagnet(editingMagnet as any);
+      await resourceApi.saveMagnet(editingMagnet as SaveMagnetData);
       toast.success(editingMagnet.id ? '磁力资源已更新' : '磁力资源已添加');
       setShowMagnetForm(false);
       setEditingMagnet(null);
@@ -294,7 +294,7 @@ export default function ResourcesPage() {
     if (!editingCloud.url?.trim()) { toast.error('分享链接不能为空'); return; }
     if (!editingCloud.contentId) { toast.error('内容ID不能为空'); return; }
     try {
-      await resourceApi.saveCloud(editingCloud as any);
+      await resourceApi.saveCloud(editingCloud as SaveCloudData);
       toast.success(editingCloud.id ? '网盘资源已更新' : '网盘资源已添加');
       setShowCloudForm(false);
       setEditingCloud(null);
