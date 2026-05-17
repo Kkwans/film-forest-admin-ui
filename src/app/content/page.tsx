@@ -345,8 +345,8 @@ export default function ContentPage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card border-border">
+      {/* Filters - overflow-visible 使下拉菜单不被 Card 的 overflow-hidden 裁剪 */}
+      <Card className="bg-card border-border overflow-visible">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-48">
