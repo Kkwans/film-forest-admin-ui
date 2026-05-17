@@ -389,7 +389,7 @@ export default function CrawlerPage() {
       contentApi.getGenres(form.contentType).then((res: AxiosResponse<GenresResult>) => {
         const data = res.data;
         if (data?.code === 200) setGenres(data.data || []);
-      }).catch(() => setGenres([]));
+      }).catch(e => { console.error('加载类型列表失败', e); setGenres([]); });
     }
   }, [form.contentType, showForm]);
 
