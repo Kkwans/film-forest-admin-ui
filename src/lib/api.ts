@@ -67,14 +67,29 @@ export interface ContentSubmitData {
 /** 保存爬虫配置请求体 */
 export type SaveScheduleData = Partial<Omit<CrawlerSchedule, 'id' | 'status' | 'lastRunTime' | 'nextRunTime' | 'totalRuns' | 'totalItems' | 'createdAt' | 'updatedAt'>>;
 
+/** 保存磁力资源请求体 */
+export interface SaveMagnetData {
+  id?: number;
+  contentType: string;
+  contentId: number;
+  title?: string;
+  magnetUrl: string;
+  resolution?: string;
+  hasSubtitle?: boolean;
+  isSpecialSub?: boolean;
+  sort?: number;
+}
+
 /** 保存网盘资源请求体 */
 export interface SaveCloudData {
   id?: number;
   contentType: string;
   contentId: number;
-  storageName: string;
+  title?: string;
+  diskType: string;
   url: string;
-  resolution?: string;
+  password?: string;
+  sort?: number;
 }
 
 /** 保存资源来源请求体 */
@@ -161,12 +176,15 @@ export const resourceApi = {
   // 在线资源列表
   listOnline: (contentType?: string, contentId?: number) =>
     adminClient.get('/api/admin/resources/online', { params: { contentType, contentId } }),
-  // 磁力资源列表
-  listMagnet: (contentType?: string, contentId?: number) =>
-    adminClient.get('/api/admin/resources/magnet', { params: { contentType, contentId } }),
-  // 网盘资源列表
-  listCloud: (contentType?: string, contentId?: number) =>
-    adminClient.get('/api/admin/resources/cloud', { params: { contentType, contentId } }),
+  // 磁力资源列表（分页）
+  listMagnet: (params?: { page?: number; size?: number; contentType?: string; contentId?: number; keyword?: string }) =>
+    adminClient.get('/api/admin/resources/magnet', { params }),
+  // 磁力资源 CRUD
+  saveMagnet: (data: SaveMagnetData) => adminClient.post('/api/admin/resources/magnet', data),
+  deleteMagnet: (id: number) => adminClient.delete(`/api/admin/resources/magnet/${id}`),
+  // 网盘资源列表（分页）
+  listCloud: (params?: { page?: number; size?: number; contentType?: string; contentId?: number; keyword?: string }) =>
+    adminClient.get('/api/admin/resources/cloud', { params }),
   // 网盘资源 CRUD
   saveCloud: (data: SaveCloudData) => adminClient.post('/api/admin/resources/cloud', data),
   deleteCloud: (id: number) => adminClient.delete(`/api/admin/resources/cloud/${id}`),
