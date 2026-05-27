@@ -64,11 +64,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const toast = useCallback((message: string, type: ToastType = 'info', duration = 3000) => {
+  const toast = useCallback((message: string, type: ToastType = 'info', duration?: number) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setToasts(prev => [...prev, { id, type, message, duration }]);
-    if (duration > 0) {
-      setTimeout(() => remove(id), duration);
+    // Error toasts stay longer (5s) if duration not specified
+    const actualDuration = duration ?? (type === 'error' ? 5000 : 3000);
+    setToasts(prev => [...prev, { id, type, message, duration: actualDuration }]);
+    if (actualDuration > 0) {
+      setTimeout(() => remove(id), actualDuration);
     }
   }, [remove]);
 

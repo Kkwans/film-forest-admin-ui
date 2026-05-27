@@ -96,10 +96,19 @@ export function buildSubmitData(form: EditForm) {
 // ========== 通用输入框 ==========
 
 const INPUT_CLASS = 'h-9 px-3 rounded-lg border bg-background text-foreground text-sm';
+const INPUT_ERROR_CLASS = 'border-destructive focus:ring-destructive/20 focus:border-destructive';
 
 /** 通用表单输入框 */
-function FormInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={INPUT_CLASS + ' placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all' + (props.className ? ` ${props.className}` : '')} />;
+function FormInput({ error, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
+  return (
+    <div className="grid gap-1">
+      <input
+        {...props}
+        className={INPUT_CLASS + ' placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all' + (error ? ` ${INPUT_ERROR_CLASS}` : '') + (props.className ? ` ${props.className}` : '')}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
 }
 
 /** 通用表单文本域 */
@@ -121,10 +130,11 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 // ========== 表单字段组件 ==========
 
-export function ContentFormFields({ form, onChange, showStatus = false }: {
+export function ContentFormFields({ form, onChange, showStatus = false, errors = {} }: {
   form: EditForm;
   onChange: (form: EditForm) => void;
   showStatus?: boolean;
+  errors?: Record<string, string>;
 }) {
   return (
     <div className="space-y-6 py-2">
@@ -139,11 +149,11 @@ export function ContentFormFields({ form, onChange, showStatus = false }: {
             <Select value={form.type} onChange={v => onChange({ ...form, type: v as ContentType })} options={TYPE_OPTIONS} />
           </Field>
           <Field label="年份">
-            <FormInput value={form.year} onChange={e => onChange({ ...form, year: e.target.value })} placeholder="2026" />
+            <FormInput value={form.year} onChange={e => onChange({ ...form, year: e.target.value })} placeholder="2026" error={errors.year} />
           </Field>
         </div>
         <Field label="标题">
-          <FormInput value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" />
+          <FormInput value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" error={errors.title} />
         </Field>
         <Field label="海报 URL">
           <FormInput value={form.posterUrl} onChange={e => onChange({ ...form, posterUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
@@ -158,13 +168,13 @@ export function ContentFormFields({ form, onChange, showStatus = false }: {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="豆瓣评分">
-            <FormInput value={form.scoreDouban} onChange={e => onChange({ ...form, scoreDouban: e.target.value })} placeholder="8.5" />
+            <FormInput value={form.scoreDouban} onChange={e => onChange({ ...form, scoreDouban: e.target.value })} placeholder="8.5" error={errors.scoreDouban} />
           </Field>
           <Field label="IMDb 评分">
-            <FormInput value={form.scoreImdb} onChange={e => onChange({ ...form, scoreImdb: e.target.value })} placeholder="8.3" />
+            <FormInput value={form.scoreImdb} onChange={e => onChange({ ...form, scoreImdb: e.target.value })} placeholder="8.3" error={errors.scoreImdb} />
           </Field>
           <Field label="RT 评分（%）">
-            <FormInput value={form.scoreRt} onChange={e => onChange({ ...form, scoreRt: e.target.value })} placeholder="95" />
+            <FormInput value={form.scoreRt} onChange={e => onChange({ ...form, scoreRt: e.target.value })} placeholder="95" error={errors.scoreRt} />
           </Field>
         </div>
       </div>
@@ -230,7 +240,7 @@ export function ContentFormFields({ form, onChange, showStatus = false }: {
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="时长（分钟）">
-            <FormInput value={form.duration} onChange={e => onChange({ ...form, duration: e.target.value })} placeholder="120" />
+            <FormInput value={form.duration} onChange={e => onChange({ ...form, duration: e.target.value })} placeholder="120" error={errors.duration} />
           </Field>
           <Field label="上映日期">
             <FormInput value={form.releaseDate} onChange={e => onChange({ ...form, releaseDate: e.target.value })} placeholder="2026-03-20" />

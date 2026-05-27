@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { Search, Plus, Edit, Trash2, Eye, Inbox } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, Inbox, X, Loader2 } from 'lucide-react';
 import { contentApi } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { Select } from '@/components/ui/select';
@@ -39,6 +39,15 @@ function dispatchByType<T>(
   }
 ): T {
   return handlers[type]();
+}
+
+/** 从 API 错误中提取可读的错误消息 */
+function extractErrorMessage(e: unknown, fallback: string): string {
+  if (typeof e === 'object' && e !== null) {
+    const err = e as { response?: { data?: { message?: string; msg?: string } }; message?: string };
+    return err.response?.data?.message || err.response?.data?.msg || err.message || fallback;
+  }
+  return fallback;
 }
 
 // ========== 类型定义 ==========
@@ -78,12 +87,40 @@ export default function ContentPage() {
   const [items, setItems] = useState<ContentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 20;
   const [allItems, setAllItems] = useState<ContentRecord[]>([]); // typeFilter='all' 时的全量数据
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savingNew, setSavingNew] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Debounce search keyword
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  // Keyboard shortcut: Ctrl+F to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -100,7 +137,7 @@ export default function ContentPage() {
       const results = await Promise.allSettled(
         types.map(t => {
           const params: ContentListParams = { page: fetchPage, size: fetchSize };
-          if (keyword) params.keyword = keyword;
+          if (debouncedKeyword) params.keyword = debouncedKeyword;
           switch (t) {
             case 'movie': return contentApi.listMovies(params);
             case 'drama': return contentApi.listDramas(params);
@@ -150,11 +187,11 @@ export default function ContentPage() {
       }
     } catch (e: unknown) {
       console.error('fetch error', e);
-      toast.error('数据加载失败');
+      toast.error(extractErrorMessage(e, '数据加载失败'));
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, statusFilter, keyword, page, pageSize]);
+  }, [typeFilter, statusFilter, debouncedKeyword, page, pageSize]);
 
   // typeFilter='all' 时的客户端分页
   useEffect(() => {
@@ -185,9 +222,24 @@ export default function ContentPage() {
     short_drama: stats.shortDramas,
   };
 
+  // ========== 表单验证 ==========
+  const validateForm = (form: EditForm): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) errors.title = '请输入标题';
+    if (form.year && (isNaN(Number(form.year)) || Number(form.year) < 1888 || Number(form.year) > 2099)) errors.year = '请输入有效年份 (1888-2099)';
+    if (form.scoreDouban && (isNaN(Number(form.scoreDouban)) || Number(form.scoreDouban) < 0 || Number(form.scoreDouban) > 10)) errors.scoreDouban = '评分范围 0-10';
+    if (form.scoreImdb && (isNaN(Number(form.scoreImdb)) || Number(form.scoreImdb) < 0 || Number(form.scoreImdb) > 10)) errors.scoreImdb = '评分范围 0-10';
+    if (form.scoreRt && (isNaN(Number(form.scoreRt)) || Number(form.scoreRt) < 0 || Number(form.scoreRt) > 100)) errors.scoreRt = '评分范围 0-100';
+    if (form.duration && (isNaN(Number(form.duration)) || Number(form.duration) < 0)) errors.duration = '请输入有效时长';
+    return errors;
+  };
+
+  // ========== 操作处理 ==========
   const handleDelete = async (id: number, type: ContentRecord['type']) => {
     const ok = await dialog.confirm({ title: '删除内容', content: '确定删除此内容？删除后不可恢复。', confirmText: '删除', cancelText: '取消', variant: 'danger' });
     if (!ok) return;
+    const key = `${type}-${id}`;
+    setDeletingIds(prev => new Set(prev).add(key));
     try {
       const res = await dispatchByType(type, {
         movie: () => contentApi.deleteMovie(id),
@@ -201,10 +253,12 @@ export default function ContentPage() {
         setTotal(t => t - 1);
         toast.success('已删除');
       } else {
-        toast.error('删除失败');
+        toast.error(res?.data?.message || '删除失败');
       }
-    } catch {
-      toast.error('删除失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '删除失败，请检查网络'));
+    } finally {
+      setDeletingIds(prev => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
 
@@ -216,10 +270,17 @@ export default function ContentPage() {
   const handleCreateNew = () => {
     setCreatingNew(true);
     setEditForm(EMPTY_FORM);
+    setFormErrors({});
   };
 
   const handleSaveNew = async () => {
-    if (!editForm.title.trim()) { toast.warning('请输入标题'); return; }
+    const errors = validateForm(editForm);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.warning('请检查表单中的错误');
+      return;
+    }
+    setSavingNew(true);
     const data = buildSubmitData(editForm);
     try {
       const res = await dispatchByType(editForm.type, {
@@ -231,18 +292,22 @@ export default function ContentPage() {
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setCreatingNew(false);
+        setFormErrors({});
         toast.success('创建成功');
         fetchItems();
       } else {
-        toast.error('创建失败');
+        toast.error(res?.data?.message || '创建失败');
       }
-    } catch {
-      toast.error('创建失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '创建失败，请检查网络'));
+    } finally {
+      setSavingNew(false);
     }
   };
 
   const handleEditClick = (item: ContentRecord) => {
     setEditingItem(item);
+    setFormErrors({});
     setEditForm({
       title: item.title || '',
       posterUrl: item.posterUrl || '',
@@ -267,6 +332,13 @@ export default function ContentPage() {
 
   const handleSaveEdit = async () => {
     if (!editingItem) return;
+    const errors = validateForm(editForm);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.warning('请检查表单中的错误');
+      return;
+    }
+    setSavingEdit(true);
     const data = { ...editingItem, ...buildSubmitData(editForm) };
     try {
       const res = await dispatchByType(editingItem.type, {
@@ -278,18 +350,25 @@ export default function ContentPage() {
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         setEditingItem(null);
+        setFormErrors({});
         toast.success('已保存');
         fetchItems();
       } else {
-        toast.error('保存失败');
+        toast.error(res?.data?.message || '保存失败');
       }
-    } catch {
-      toast.error('保存失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '保存失败，请检查网络'));
+    } finally {
+      setSavingEdit(false);
     }
   };
 
   const handleToggleStatus = async (item: ContentRecord) => {
+    const key = `${item.type}-${item.id}`;
     const newStatus = item.status === 1 ? 0 : 1;
+    // Optimistic update
+    setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: newStatus } : i));
+    setTogglingIds(prev => new Set(prev).add(key));
     const data = { ...item, status: newStatus };
     try {
       const res = await dispatchByType(item.type, {
@@ -301,14 +380,33 @@ export default function ContentPage() {
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         toast.success(newStatus === 1 ? '已上线' : '已下线');
-        fetchItems();
       } else {
+        // Revert optimistic update
+        setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: item.status } : i));
         toast.error('更新状态失败');
       }
     } catch {
+      // Revert optimistic update
+      setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: item.status } : i));
       toast.error('更新状态失败');
+    } finally {
+      setTogglingIds(prev => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
+
+  // Keyboard shortcut: Ctrl+Enter to save in modal
+  useEffect(() => {
+    if (!editingItem && !creatingNew) return;
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (editingItem) handleSaveEdit();
+        else if (creatingNew) handleSaveNew();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editingItem, creatingNew, editForm]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -349,13 +447,23 @@ export default function ContentPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="搜索标题..."
+                ref={searchRef}
+                placeholder="搜索标题... (Ctrl+F)"
                 value={keyword}
-                onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
-                className="pl-9 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => setKeyword(e.target.value)}
+                className="pl-9 pr-9 bg-muted border-border text-foreground placeholder:text-muted-foreground"
               />
+              {keyword && (
+                <button
+                  onClick={() => { setKeyword(''); searchRef.current?.focus(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                  title="清除搜索"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <Select
               value={typeFilter}
@@ -369,8 +477,8 @@ export default function ContentPage() {
               options={[{ label: '全部状态', value: 'all' }, { label: '已上线', value: '1' }, { label: '已下线', value: '0' }]}
               className="w-36"
             />
-            <Button variant="outline" size="sm" onClick={fetchItems} className="border-border text-muted-foreground hover:text-foreground">
-              刷新
+            <Button variant="outline" size="sm" onClick={fetchItems} disabled={loading} className="border-border text-muted-foreground hover:text-foreground">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : '刷新'}
             </Button>
           </div>
         </CardContent>
@@ -382,6 +490,9 @@ export default function ContentPage() {
           <CardTitle className="text-foreground text-base flex items-center gap-2">
             <span className="w-1 h-4 rounded-full bg-primary" />
             内容列表 ({loading ? '...' : total || filtered.length})
+            {debouncedKeyword && !loading && (
+              <span className="text-xs font-normal text-muted-foreground ml-1">— 搜索 &ldquo;{debouncedKeyword}&rdquo;</span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -414,7 +525,10 @@ export default function ContentPage() {
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                       <Inbox className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                      <p className="text-sm">暂无内容</p>
+                      <p className="text-sm">{debouncedKeyword ? `未找到匹配 "${debouncedKeyword}" 的内容` : '暂无内容'}</p>
+                      {debouncedKeyword && (
+                        <button onClick={() => setKeyword('')} className="text-xs text-primary hover:underline mt-2">清除搜索</button>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -455,9 +569,14 @@ export default function ContentPage() {
                       <td className="px-4 py-3.5">
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/20' : 'bg-muted text-muted-foreground hover:bg-muted/80 ring-1 ring-border'}`}
+                          disabled={togglingIds.has(`${item.type}-${item.id}`)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all disabled:opacity-50 ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/20' : 'bg-muted text-muted-foreground hover:bg-muted/80 ring-1 ring-border'}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+                          {togglingIds.has(`${item.type}-${item.id}`) ? (
+                            <Loader2 className="w-1.5 h-1.5 animate-spin" />
+                          ) : (
+                            <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+                          )}
                           {item.status === 1 ? '已上线' : '已下线'}
                         </button>
                       </td>
@@ -471,10 +590,11 @@ export default function ContentPage() {
                           </button>
                           <button
                             onClick={() => handleDelete(item.id, item.type)}
-                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            disabled={deletingIds.has(`${item.type}-${item.id}`)}
+                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                             title="删除"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            {deletingIds.has(`${item.type}-${item.id}`) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
@@ -499,7 +619,10 @@ export default function ContentPage() {
             ) : filtered.length === 0 ? (
               <div className="px-4 py-12 text-center text-muted-foreground">
                 <Inbox className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">暂无内容</p>
+                <p className="text-sm">{debouncedKeyword ? `未找到匹配 "${debouncedKeyword}" 的内容` : '暂无内容'}</p>
+                {debouncedKeyword && (
+                  <button onClick={() => setKeyword('')} className="text-xs text-primary hover:underline mt-2">清除搜索</button>
+                )}
               </div>
             ) : (
               filtered.map((item) => (
@@ -522,7 +645,8 @@ export default function ContentPage() {
                         )}
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-all ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}
+                          disabled={togglingIds.has(`${item.type}-${item.id}`)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
                           {item.status === 1 ? '已上线' : '已下线'}
@@ -614,27 +738,33 @@ export default function ContentPage() {
       </Modal>
 
       {/* Create Modal */}
-      <Modal open={creatingNew} onClose={() => setCreatingNew(false)} title="新增内容" width="lg"
+      <Modal open={creatingNew} onClose={() => { setCreatingNew(false); setFormErrors({}); }} title="新增内容" width="lg"
         footer={
           <>
-            <button onClick={() => setCreatingNew(false)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSaveNew} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors">创建</button>
+            <button onClick={() => { setCreatingNew(false); setFormErrors({}); }} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
+            <button onClick={handleSaveNew} disabled={savingNew} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors disabled:opacity-50 inline-flex items-center gap-2">
+              {savingNew && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {savingNew ? '创建中...' : '创建'}
+            </button>
           </>
         }
       >
-        <ContentFormFields form={editForm} onChange={setEditForm} />
+        <ContentFormFields form={editForm} onChange={(f) => { setEditForm(f); setFormErrors({}); }} errors={formErrors} />
       </Modal>
 
       {/* Edit Modal */}
-      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="编辑内容" width="lg"
+      <Modal open={!!editingItem} onClose={() => { setEditingItem(null); setFormErrors({}); }} title="编辑内容" width="lg"
         footer={
           <>
-            <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
-            <button onClick={handleSaveEdit} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors">保存</button>
+            <button onClick={() => { setEditingItem(null); setFormErrors({}); }} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">取消</button>
+            <button onClick={handleSaveEdit} disabled={savingEdit} className="px-4 py-2 text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors disabled:opacity-50 inline-flex items-center gap-2">
+              {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {savingEdit ? '保存中...' : '保存'}
+            </button>
           </>
         }
       >
-        <ContentFormFields form={editForm} onChange={setEditForm} showStatus />
+        <ContentFormFields form={editForm} onChange={(f) => { setEditForm(f); setFormErrors({}); }} showStatus errors={formErrors} />
       </Modal>
     </div>
   );
