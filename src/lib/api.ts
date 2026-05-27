@@ -293,6 +293,63 @@ export const statsApi = {
   exportHotSearch: (days?: number) => adminClient.get('/api/stats/export/hot-search', { params: { days }, responseType: 'blob' }),
 };
 
+// 用户管理 API
+export interface UserItem {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const userApi = {
+  /** 分页查询用户 */
+  list: (params?: { page?: number; size?: number; keyword?: string; status?: number }) =>
+    adminClient.get('/api/admin/users', { params }),
+  /** 获取单个用户 */
+  get: (id: number) => adminClient.get(`/api/admin/users/${id}`),
+  /** 创建用户 */
+  create: (data: { username: string; password: string; nickname?: string; email?: string; phone?: string; status?: number }) =>
+    adminClient.post('/api/admin/users', data),
+  /** 更新用户 */
+  update: (id: number, data: { nickname?: string; email?: string; phone?: string; avatarUrl?: string; status?: number }) =>
+    adminClient.put(`/api/admin/users/${id}`, data),
+  /** 删除用户 */
+  delete: (id: number) => adminClient.delete(`/api/admin/users/${id}`),
+  /** 切换用户状态 */
+  toggleStatus: (id: number) => adminClient.post(`/api/admin/users/${id}/toggle-status`),
+  /** 重置密码 */
+  resetPassword: (id: number, newPassword: string) =>
+    adminClient.post(`/api/admin/users/${id}/reset-password`, { newPassword }),
+};
+
+// 操作日志 API
+export interface LogItem {
+  id: number;
+  userId: number;
+  username: string;
+  action: string;
+  module: string;
+  target: string;
+  detail: string;
+  ip: string;
+  status: number;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export const logApi = {
+  /** 分页查询日志 */
+  list: (params?: { page?: number; size?: number; action?: string; module?: string; status?: number; keyword?: string }) =>
+    adminClient.get('/api/admin/logs', { params }),
+  /** 日志统计 */
+  stats: () => adminClient.get('/api/admin/logs/stats'),
+};
+
 // ---- Tags ----
 
 export interface TagItem {
