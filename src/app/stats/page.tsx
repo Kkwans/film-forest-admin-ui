@@ -116,28 +116,48 @@ export default function StatsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-        <div className="relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4">
-          <div className="text-2xl mb-2">📊</div>
-          <p className="text-xs text-primary/70 mb-1">内容总量</p>
-          <p className="text-xl font-bold text-primary">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
-          {overview && overview.totalWeekGrowth > 0 && <p className="text-xs mt-1 text-green-500">+{overview.totalWeekGrowth} 本周</p>}
+        <div className="stat-card relative overflow-hidden rounded-xl bg-card border border-primary/20 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <span className="text-lg">📊</span>
+            </div>
+            <p className="text-xs text-primary/70 mb-1 font-medium">内容总量</p>
+            <p className="text-xl font-bold text-primary tabular-nums">{loading ? <Skeleton className="h-5 w-14" /> : total.toLocaleString()}</p>
+            {overview && overview.totalWeekGrowth > 0 && <p className="text-xs mt-1 text-emerald-500 font-medium">+{overview.totalWeekGrowth} 本周</p>}
+          </div>
         </div>
-        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
-          <div className="text-2xl mb-2">🤖</div>
-          <p className="text-xs text-muted-foreground mb-1">爬虫成功率</p>
-          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : `${overview?.crawler.successRate ?? 0}%`}</p>
-          <p className="text-xs mt-1 text-muted-foreground">{overview?.crawler.totalRuns ?? 0} 次运行</p>
+        <div className="stat-card relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center mb-2">
+              <span className="text-lg">🤖</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-1 font-medium">爬虫成功率</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">{loading ? <Skeleton className="h-5 w-14" /> : `${overview?.crawler.successRate ?? 0}%`}</p>
+            <p className="text-xs mt-1 text-muted-foreground">{overview?.crawler.totalRuns ?? 0} 次运行</p>
+          </div>
         </div>
-        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
-          <div className="text-2xl mb-2">📦</div>
-          <p className="text-xs text-muted-foreground mb-1">资源总数</p>
-          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.resources.total ?? 0).toLocaleString()}</p>
-          <p className="text-xs mt-1 text-muted-foreground">在线 {overview?.resources.online ?? 0} · 磁力 {overview?.resources.magnet ?? 0}</p>
+        <div className="stat-card relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-2">
+              <span className="text-lg">📦</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-1 font-medium">资源总数</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.resources.total ?? 0).toLocaleString()}</p>
+            <p className="text-xs mt-1 text-muted-foreground">在线 {overview?.resources.online ?? 0} · 磁力 {overview?.resources.magnet ?? 0}</p>
+          </div>
         </div>
-        <div className="relative overflow-hidden rounded-xl bg-card border border-border p-4">
-          <div className="text-2xl mb-2">👥</div>
-          <p className="text-xs text-muted-foreground mb-1">用户数</p>
-          <p className="text-xl font-bold text-foreground">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.totalUsers ?? 0).toLocaleString()}</p>
+        <div className="stat-card relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-2">
+              <span className="text-lg">👥</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-1 font-medium">用户数</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">{loading ? <Skeleton className="h-5 w-14" /> : (overview?.totalUsers ?? 0).toLocaleString()}</p>
+          </div>
         </div>
       </div>
 
@@ -158,7 +178,7 @@ export default function StatsPage() {
 
       {/* Content Growth Trend (30 days) */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><TrendingUp className="w-4 h-4 text-muted-foreground" /> 内容增长趋势（近30天）</h3></div>
+        <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-primary" /> 内容增长趋势（近30天）</h3></div>
         <div className="p-5">
           {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-full h-48" /></div>
           : !trend || trendChartData.length === 0 || trendChartData.every(d => TYPE_ORDER.every(t => (d[TYPE_LABELS[t] || t] as number) === 0)) ?
@@ -180,7 +200,7 @@ export default function StatsPage() {
 
       {/* Crawler Trend Line Chart (7 days) */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫运行趋势（近7天）</h3></div>
+        <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-blue-500" /> 爬虫运行趋势（近7天）</h3></div>
         <div className="p-5">
           {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-full h-48" /></div>
           : dailyStats.length === 0 || dailyStats.every(d => d.runs === 0) ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无运行数据</p></div>
@@ -190,9 +210,9 @@ export default function StatsPage() {
 
       {/* Hot Search Keywords */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
+        <div className="px-5 py-4 border-b border-border/60">
           <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Search className="w-4 h-4 text-muted-foreground" /> 热门搜索词（近30天）
+            <span className="w-1 h-4 rounded-full bg-amber-500" /> 热门搜索词（近30天）
           </h3>
         </div>
         <div className="p-5">
@@ -236,7 +256,7 @@ export default function StatsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
         <div className="rounded-xl bg-card border border-border overflow-hidden">
-          <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><BarChart3 className="w-4 h-4 text-muted-foreground" /> 内容分布</h3></div>
+          <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-violet-500" /> 内容分布</h3></div>
           <div className="p-5 flex flex-col items-center">
             {loading ? <div className="h-64 flex items-center justify-center"><Skeleton className="w-48 h-48 rounded-full" /></div>
             : pieData.length === 0 ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无数据</p></div>
@@ -245,7 +265,7 @@ export default function StatsPage() {
         </div>
         {/* Bar Chart */}
         <div className="rounded-xl bg-card border border-border overflow-hidden">
-          <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫运行统计</h3></div>
+          <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-emerald-500" /> 爬虫运行统计</h3></div>
           <div className="p-5">
             {loading ? <div className="h-64 flex items-center justify-center"><div className="flex items-end gap-3 h-48">{[60, 100, 80, 120, 70].map((h, i) => <Skeleton key={i} className="w-12 rounded-t" style={{ height: `${h}px` }} />)}</div></div>
             : barData.length === 0 ? <div className="h-64 flex flex-col items-center justify-center text-muted-foreground"><Inbox className="w-10 h-10 mb-2 opacity-40" /><p className="text-sm">暂无爬虫配置</p></div>
@@ -256,7 +276,7 @@ export default function StatsPage() {
 
       {/* Content Distribution Bars */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Database className="w-4 h-4 text-muted-foreground" /> 内容占比详情</h3></div>
+        <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-rose-500" /> 内容占比详情</h3></div>
         <div className="p-5">
           <div className="text-3xl font-bold text-foreground mb-6">{loading ? <Skeleton className="h-8 w-24 inline-block" /> : total.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">内容总量</span></div>
           <div className="space-y-4">
@@ -269,7 +289,7 @@ export default function StatsPage() {
 
       {/* Crawler Details */}
       <div className="rounded-xl bg-card border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border"><h3 className="font-semibold text-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> 爬虫配置详情</h3></div>
+        <div className="px-5 py-4 border-b border-border/60"><h3 className="font-semibold text-foreground flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-blue-500" /> 爬虫配置详情</h3></div>
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {crawlerStats.schedules.map((s) => { const isRunning = s.status === 'running'; const pct = crawlerStats.totalItems > 0 ? ((s.totalItems || 0) / crawlerStats.totalItems * 100) : 0; return (
             <div key={s.name} className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-foreground/10 transition-colors">

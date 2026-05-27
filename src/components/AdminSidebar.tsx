@@ -23,7 +23,7 @@ export default function AdminSidebar() {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-[60] p-2 rounded-lg bg-sidebar border border-sidebar-border md:hidden"
+        className="fixed top-3 left-3 z-[60] p-2 rounded-lg bg-sidebar border border-sidebar-border md:hidden shadow-lg"
         aria-label="打开菜单"
       >
         <Menu className="w-5 h-5 text-sidebar-foreground" />
@@ -32,7 +32,7 @@ export default function AdminSidebar() {
       {/* Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-[55] bg-black/50 md:hidden"
+          className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -50,15 +50,17 @@ export default function AdminSidebar() {
         {/* Mobile close button */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border md:hidden">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🌲</span>
+            <div className="w-8 h-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center">
+              <span className="text-lg">🌲</span>
+            </div>
             <div>
               <p className="font-bold text-sidebar-foreground">影视森林</p>
-              <p className="text-xs text-sidebar-foreground/60">管理后台</p>
+              <p className="text-xs text-sidebar-foreground/50">管理后台</p>
             </div>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1 rounded text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            className="p-1 rounded text-sidebar-foreground/60 hover:text-sidebar-foreground"
             aria-label="关闭菜单"
           >
             <X className="w-5 h-5" />
@@ -67,15 +69,18 @@ export default function AdminSidebar() {
 
         {/* Desktop logo */}
         <div className="hidden md:flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-          <span className="text-2xl">🌲</span>
+          <div className="w-9 h-9 rounded-xl bg-sidebar-primary/20 flex items-center justify-center shadow-sm">
+            <span className="text-lg">🌲</span>
+          </div>
           <div>
-            <p className="font-bold text-sidebar-foreground">影视森林</p>
-            <p className="text-xs text-sidebar-foreground/60">管理后台</p>
+            <p className="font-bold text-sidebar-foreground tracking-tight">影视森林</p>
+            <p className="text-xs text-sidebar-foreground/40">管理后台 v0.1.0</p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <p className="px-3 mb-2 text-[10px] font-semibold text-sidebar-foreground/30 uppercase tracking-widest">导航</p>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -83,17 +88,25 @@ export default function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative group ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all relative group ${
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
                 }`}
               >
-                {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sidebar-primary animate-in slide-in-from-left-1 duration-200" />}
-                <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-sidebar-primary' : 'group-hover:text-sidebar-foreground/90'}`} />
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary shadow-[0_0_8px_var(--sidebar-primary)]" />
+                )}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  isActive
+                    ? 'bg-sidebar-primary/15 text-sidebar-primary'
+                    : 'bg-transparent text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70 group-hover:bg-sidebar-accent/60'
+                }`}>
+                  <item.icon className="w-[18px] h-[18px]" />
+                </div>
                 <span className="truncate">{item.label}</span>
                 {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary/60" />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary shadow-[0_0_6px_var(--sidebar-primary)]" />
                 )}
               </Link>
             );
@@ -101,10 +114,10 @@ export default function AdminSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <p className="text-xs text-sidebar-foreground/40">运行中 · v0.1.0</p>
+        <div className="px-5 py-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_oklch(0.6_0.18_145)]" />
+            <p className="text-xs text-sidebar-foreground/30">运行中</p>
           </div>
         </div>
       </aside>

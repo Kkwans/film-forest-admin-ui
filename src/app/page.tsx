@@ -88,10 +88,10 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { label: '内容总量', value: totalContent, icon: Database, color: 'text-primary', bgColor: 'bg-primary/10', href: '/content' },
-    { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-muted-foreground', bgColor: 'bg-muted', href: '/crawler' },
-    { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-primary' : 'text-muted-foreground', bgColor: runningCrawlers > 0 ? 'bg-primary/10' : 'bg-muted', href: '/crawler' },
-    { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-muted-foreground', bgColor: 'bg-muted', href: '/stats' },
+    { label: '内容总量', value: totalContent, icon: Database, color: 'text-primary', bgColor: 'bg-primary/10', href: '/content', gradient: 'from-primary/5 to-transparent' },
+    { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-violet-500', bgColor: 'bg-violet-500/10', href: '/crawler', gradient: 'from-violet-500/5 to-transparent' },
+    { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-emerald-500' : 'text-muted-foreground', bgColor: runningCrawlers > 0 ? 'bg-emerald-500/10' : 'bg-muted', href: '/crawler', gradient: runningCrawlers > 0 ? 'from-emerald-500/5 to-transparent' : 'from-muted/5 to-transparent' },
+    { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-amber-500', bgColor: 'bg-amber-500/10', href: '/stats', gradient: 'from-amber-500/5 to-transparent' },
   ];
 
   const contentStats = [
@@ -125,24 +125,32 @@ export default function AdminDashboard() {
           <Link
             key={stat.label}
             href={stat.href}
-            className="group relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/15 hover:shadow-md transition-all"
+            className={`stat-card group relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/15 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} pointer-events-none`} />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${stat.bgColor} flex items-center justify-center`}
+                  style={{ boxShadow: 'none' }}
+                >
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+              <p className="text-xs text-muted-foreground mb-1 font-medium">{stat.label}</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums">{loading ? <Skeleton className="h-7 w-16" /> : stat.value.toLocaleString()}</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-foreground">{loading ? <Skeleton className="h-7 w-16" /> : stat.value.toLocaleString()}</p>
           </Link>
         ))}
       </div>
 
       {/* Content Breakdown */}
       <div className="rounded-xl bg-card border border-border p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">内容分布</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <span className="w-1 h-4 rounded-full bg-primary" />
+            内容分布
+          </h2>
           <Link href="/stats" className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
             详细统计 <ArrowRight className="w-3 h-3" />
           </Link>
@@ -169,9 +177,10 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Content */}
         <div className="rounded-xl bg-card border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" /> 最近内容
+              <span className="w-1 h-4 rounded-full bg-violet-500" />
+              最近内容
             </h3>
             <Link href="/content" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
               查看全部 <ArrowRight className="w-3 h-3" />
@@ -224,9 +233,10 @@ export default function AdminDashboard() {
 
         {/* Crawler Status */}
         <div className="rounded-xl bg-card border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <Activity className="w-4 h-4 text-muted-foreground" /> 爬虫状态
+              <span className="w-1 h-4 rounded-full bg-emerald-500" />
+              爬虫状态
             </h3>
             <Link href="/crawler" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors">
               管理 <ArrowRight className="w-3 h-3" />
@@ -289,22 +299,24 @@ export default function AdminDashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-muted-foreground' },
-          { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-primary' },
-          { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-muted-foreground' },
-          { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-muted-foreground' },
+          { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-violet-500', bg: 'bg-violet-500/10' },
+          { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         ].map((action) => (
           <Link
             key={action.label}
             href={action.href}
-            className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-border transition-colors group"
+            className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-foreground/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
           >
-            <action.icon className={`w-5 h-5 ${action.color} shrink-0`} />
+            <div className={`w-10 h-10 rounded-xl ${action.bg} flex items-center justify-center shrink-0`}>
+              <action.icon className={`w-5 h-5 ${action.color}`} />
+            </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground">{action.label}</p>
               <p className="text-xs text-muted-foreground">{action.desc}</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground transition-colors ml-auto shrink-0" />
+            <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
           </Link>
         ))}
       </div>

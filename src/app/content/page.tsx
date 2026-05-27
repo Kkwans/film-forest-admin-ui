@@ -326,19 +326,19 @@ export default function ContentPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: '电影', key: 'movie', icon: '🎬', color: 'text-primary' },
-          { label: '剧集', key: 'drama', icon: '📺', color: 'text-primary' },
-          { label: '综艺', key: 'variety', icon: '🎤', color: 'text-primary' },
-          { label: '动漫', key: 'anime', icon: '🎯', color: 'text-primary' },
-          { label: '短剧', key: 'short_drama', icon: '⚡', color: 'text-primary' },
+          { label: '电影', key: 'movie', icon: '🎬', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: '剧集', key: 'drama', icon: '📺', color: 'text-violet-500', bg: 'bg-violet-500/10' },
+          { label: '综艺', key: 'variety', icon: '🎤', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: '动漫', key: 'anime', icon: '🎯', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: '短剧', key: 'short_drama', icon: '⚡', color: 'text-rose-500', bg: 'bg-rose-500/10' },
         ].map((stat) => (
-          <Card key={stat.key} className="bg-card border-border hover:border-foreground/15 transition-colors group">
+          <Card key={stat.key} className="bg-card border-border hover:border-foreground/10 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-lg">{stat.icon}</span>
-                <span className={`text-2xl font-bold ${stat.color}`}>{typeCountMap[stat.key] ?? '-'}</span>
+                <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center text-base`}>{stat.icon}</div>
+                <span className={`text-2xl font-bold ${stat.color} tabular-nums`}>{typeCountMap[stat.key] ?? '-'}</span>
               </div>
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
+              <span className="text-xs text-muted-foreground font-medium">{stat.label}</span>
             </CardContent>
           </Card>
         ))}
@@ -377,9 +377,10 @@ export default function ContentPage() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-foreground text-base">
+      <Card className="bg-card border-border overflow-visible">
+        <CardHeader className="pb-3 border-b border-border/60">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
+            <span className="w-1 h-4 rounded-full bg-primary" />
             内容列表 ({loading ? '...' : total || filtered.length})
           </CardTitle>
         </CardHeader>
