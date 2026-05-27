@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Database, Bell, Shield, Save, Loader2, CheckCircle2, Globe, Palette, Key, Server, HardDrive, Mail, AlertTriangle } from 'lucide-react';
-import { settingsApi } from '@/lib/api';
+import { settingsApi, userApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 
 interface SettingsData {
@@ -81,18 +81,39 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePasswordChange = () => {
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handlePasswordChange = async () => {
     if (!password.trim()) {
       toast.error('请输入新密码');
+      return;
+    }
+    if (password.length < 6) {
+      toast.error('密码长度至少 6 位');
       return;
     }
     if (password !== confirmPassword) {
       toast.error('两次密码不一致');
       return;
     }
-    toast.info('密码更新功能需要后端用户认证模块支持，当前版本暂不可用');
-    setPassword('');
-    setConfirmPassword('');
+    setChangingPassword(true);
+    try {
+      // Get current user info to find user ID
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (!user?.id) {
+        toast.error('无法获取当前用户信息，请重新登录');
+        return;
+      }
+      await userApi.resetPassword(user.id, password);
+      toast.success('密码已更新');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '密码更新失败');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   if (loading) {
@@ -318,9 +339,10 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={handlePasswordChange}
-                className="w-fit px-5 py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+                disabled={changingPassword}
+                className="w-fit px-5 py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-colors"
               >
-                更新密码
+                {changingPassword ? '更新中...' : '更新密码'}
               </button>
             </div>
           </div>

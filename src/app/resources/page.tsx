@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 import { resourceApi, type SaveMagnetData, type SaveCloudData } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
@@ -93,40 +94,7 @@ const CONTENT_TYPE_OPTIONS = [
 
 const RESOLUTION_OPTIONS = ['', '1080P', '4K', '720P', '2160P', 'BluRay'];
 
-function Pagination({ current, total, pageSize, onChange }: { current: number; total: number; pageSize: number; onChange: (page: number) => void }) {
-  const totalPages = Math.ceil(total / pageSize);
-  if (totalPages <= 1) return null;
-  const pages: (number | string)[] = [];
-  for (let i = 1; i <= totalPages; i++) {
-    if (i === 1 || i === totalPages || (i >= current - 2 && i <= current + 2)) {
-      pages.push(i);
-    } else if (pages[pages.length - 1] !== '...') {
-      pages.push('...');
-    }
-  }
-  return (
-    <div className="flex items-center justify-between mt-4 px-4 pb-2">
-      <span className="text-xs text-muted-foreground">共 {total} 条</span>
-      <div className="flex items-center gap-1">
-        <button onClick={() => onChange(current - 1)} disabled={current <= 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        {pages.map((p, i) => (
-          typeof p === 'number' ? (
-            <button key={i} onClick={() => onChange(p)} className={`w-8 h-8 rounded text-xs font-medium transition-colors ${p === current ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
-              {p}
-            </button>
-          ) : (
-            <span key={i} className="px-1 text-muted-foreground text-xs">...</span>
-          )
-        ))}
-        <button onClick={() => onChange(current + 1)} disabled={current >= totalPages} className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
+
 
 export default function ResourcesPage() {
   const toast = useToast();
@@ -651,7 +619,10 @@ export default function ResourcesPage() {
               </div>
             </div>
           )}
-          <Pagination current={magnetPage} total={magnetTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchMagnets(p, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword })} />
+          <div className="flex items-center justify-between mt-4 px-4 pb-2">
+              <span className="text-xs text-muted-foreground">共 {magnetTotal} 条</span>
+              <Pagination currentPage={magnetPage} totalPages={Math.ceil(magnetTotal / PAGE_SIZE)} onPageChange={(p) => fetchMagnets(p, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword })} />
+            </div>
         </CardContent>
         )}
       </Card>
@@ -725,7 +696,10 @@ export default function ResourcesPage() {
               </div>
             </div>
           )}
-          <Pagination current={cloudPage} total={cloudTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchClouds(p, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword })} />
+          <div className="flex items-center justify-between mt-4 px-4 pb-2">
+              <span className="text-xs text-muted-foreground">共 {cloudTotal} 条</span>
+              <Pagination currentPage={cloudPage} totalPages={Math.ceil(cloudTotal / PAGE_SIZE)} onPageChange={(p) => fetchClouds(p, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword })} />
+            </div>
         </CardContent>
         )}
       </Card>

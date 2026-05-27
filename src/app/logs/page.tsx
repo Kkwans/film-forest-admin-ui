@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Search, Loader2, ChevronLeft, ChevronRight, Activity, CheckCircle2, XCircle, Filter, X } from 'lucide-react';
 import { logApi, type LogItem } from '@/lib/api';
+import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 
 interface PageResult<T> {
@@ -194,23 +195,30 @@ export default function LogsPage() {
             <div className="flex flex-wrap gap-3 items-end">
               <div className="grid gap-1.5">
                 <label className="text-xs text-muted-foreground">操作类型</label>
-                <select value={actionFilter} onChange={e => { setActionFilter(e.target.value); setPage(1); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                  {ACTION_OPTIONS.map(a => <option key={a} value={a}>{a || '全部'}</option>)}
-                </select>
+                <Select
+                  value={actionFilter}
+                  onChange={v => { setActionFilter(v); setPage(1); }}
+                  options={ACTION_OPTIONS.map(a => ({ label: a ? ACTION_LABELS[a] : '全部', value: a }))}
+                  className="w-28"
+                />
               </div>
               <div className="grid gap-1.5">
                 <label className="text-xs text-muted-foreground">操作模块</label>
-                <select value={moduleFilter} onChange={e => { setModuleFilter(e.target.value); setPage(1); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                  {MODULE_OPTIONS.map(m => <option key={m} value={m}>{m ? MODULE_LABELS[m] : '全部'}</option>)}
-                </select>
+                <Select
+                  value={moduleFilter}
+                  onChange={v => { setModuleFilter(v); setPage(1); }}
+                  options={MODULE_OPTIONS.map(m => ({ label: m ? MODULE_LABELS[m] : '全部', value: m }))}
+                  className="w-28"
+                />
               </div>
               <div className="grid gap-1.5">
                 <label className="text-xs text-muted-foreground">状态</label>
-                <select value={statusFilter === '' ? '' : String(statusFilter)} onChange={e => { setStatusFilter(e.target.value === '' ? '' : Number(e.target.value)); setPage(1); }} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/20 outline-none">
-                  <option value="">全部</option>
-                  <option value="1">成功</option>
-                  <option value="0">失败</option>
-                </select>
+                <Select
+                  value={statusFilter === '' ? '' : String(statusFilter)}
+                  onChange={v => { setStatusFilter(v === '' ? '' : Number(v)); setPage(1); }}
+                  options={[{ label: '全部', value: '' }, { label: '成功', value: '1' }, { label: '失败', value: '0' }]}
+                  className="w-24"
+                />
               </div>
               <button onClick={handleReset} className="h-9 px-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 重置

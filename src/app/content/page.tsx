@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Search, Plus, Edit, Trash2, Eye, Inbox, X, Loader2 } from 'lucide-react';
-import { contentApi } from '@/lib/api';
+import { contentApi, tagApi, type TagItem } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -81,6 +81,61 @@ interface ContentResult { code: number; data: { records: ContentRecord[]; total:
 type FilterType = 'all' | ContentType;
 type StatusFilter = 'all' | '1' | '0';
 
+/** 渲染内容的标签 */
+function ContentTags({ item, allTags, contentTagMap }: { item: ContentRecord; allTags: TagItem[]; contentTagMap: Record<string, number[]> }) {
+  const tagIds = contentTagMap[`${item.type}-${item.id}`];
+  if (!tagIds || tagIds.length === 0) return null;
+  const tags = tagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as TagItem[];
+  if (tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {tags.slice(0, 3).map(tag => (
+        <span
+          key={tag.id}
+          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+          style={{ backgroundColor: tag.color || '#6B7280' }}
+        >
+          {tag.name}
+        </span>
+      ))}
+      {tags.length > 3 && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+          +{tags.length - 3}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** 标签选择器组件 */
+function TagSelector({ allTags, selectedIds, onChange }: { allTags: TagItem[]; selectedIds: number[]; onChange: (ids: number[]) => void }) {
+  const toggleTag = (id: number) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  };
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {allTags.map(tag => (
+        <button
+          key={tag.id}
+          type="button"
+          onClick={() => toggleTag(tag.id)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+            selectedIds.includes(tag.id)
+              ? 'text-white shadow-sm'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+          style={selectedIds.includes(tag.id) ? { backgroundColor: tag.color || '#6B7280' } : {}}
+        >
+          {tag.name}
+        </button>
+      ))}
+      {allTags.length === 0 && (
+        <p className="text-xs text-muted-foreground">暂无标签，请先创建标签</p>
+      )}
+    </div>
+  );
+}
+
 export default function ContentPage() {
   const toast = useToast();
   const dialog = useDialog();
@@ -100,6 +155,9 @@ export default function ContentPage() {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [allTags, setAllTags] = useState<TagItem[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [contentTagMap, setContentTagMap] = useState<Record<string, number[]>>({});
 
   // Debounce search keyword
   useEffect(() => {
@@ -213,7 +271,42 @@ export default function ContentPage() {
     }).catch(e => console.error('加载统计数据失败', e));
   }, []);
 
+  // Load all tags
+  useEffect(() => {
+    tagApi.list().then(res => {
+      if (res.data?.code === 200) setAllTags(res.data.data || []);
+    }).catch(() => {});
+  }, []);
+
   const filtered = items;
+
+  // Load tags for visible items (batch API)
+  useEffect(() => {
+    if (items.length === 0 || allTags.length === 0) return;
+    const loadItemTags = async () => {
+      // Filter items that haven't been loaded yet
+      const toLoad = items.filter(item => !contentTagMap[`${item.type}-${item.id}`]);
+      if (toLoad.length === 0) return;
+      try {
+        const res = await tagApi.batchGetContentTags(
+          toLoad.map(item => ({ contentType: item.type, contentId: item.id }))
+        );
+        if (res.data?.code === 200 && res.data.data) {
+          const map: Record<string, number[]> = {};
+          for (const [key, tags] of Object.entries(res.data.data)) {
+            if (Array.isArray(tags)) {
+              map[key] = tags.map((t: TagItem) => t.id);
+            }
+          }
+          if (Object.keys(map).length > 0) {
+            setContentTagMap(prev => ({ ...prev, ...map }));
+          }
+        }
+      } catch {}
+    };
+    loadItemTags();
+  }, [items, allTags]);
+
   const typeCountMap: Record<string, number> = {
     movie: stats.movies,
     drama: stats.dramas,
@@ -271,6 +364,7 @@ export default function ContentPage() {
     setCreatingNew(true);
     setEditForm(EMPTY_FORM);
     setFormErrors({});
+    setSelectedTagIds([]);
   };
 
   const handleSaveNew = async () => {
@@ -291,6 +385,13 @@ export default function ContentPage() {
         short_drama: () => contentApi.createShortDrama(data),
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
+        // Save tag associations if any selected
+        if (selectedTagIds.length > 0) {
+          const newId = res.data.data?.id;
+          if (newId) {
+            try { await tagApi.setContentTags(editForm.type, newId, selectedTagIds); } catch {}
+          }
+        }
         setCreatingNew(false);
         setFormErrors({});
         toast.success('创建成功');
@@ -305,9 +406,20 @@ export default function ContentPage() {
     }
   };
 
-  const handleEditClick = (item: ContentRecord) => {
+  const handleEditClick = async (item: ContentRecord) => {
     setEditingItem(item);
     setFormErrors({});
+    // Load tags for this content
+    try {
+      const tagRes = await tagApi.getContentTags(item.type, item.id);
+      if (tagRes.data?.code === 200 && Array.isArray(tagRes.data.data)) {
+        setSelectedTagIds(tagRes.data.data.map((t: TagItem) => t.id));
+      } else {
+        setSelectedTagIds([]);
+      }
+    } catch {
+      setSelectedTagIds([]);
+    }
     setEditForm({
       title: item.title || '',
       posterUrl: item.posterUrl || '',
@@ -349,6 +461,8 @@ export default function ContentPage() {
         short_drama: () => contentApi.updateShortDrama(editingItem.id, data),
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
+        // Save tag associations
+        try { await tagApi.setContentTags(editingItem.type, editingItem.id, selectedTagIds); } catch {}
         setEditingItem(null);
         setFormErrors({});
         toast.success('已保存');
@@ -545,6 +659,7 @@ export default function ContentPage() {
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground max-w-48 truncate group-hover:text-primary transition-colors">{item.title}</p>
+                            <ContentTags item={item} allTags={allTags} contentTagMap={contentTagMap} />
                             <p className="text-xs text-muted-foreground mt-0.5">{item.createdAt?.slice(0, 10)}</p>
                           </div>
                         </div>
@@ -637,6 +752,7 @@ export default function ContentPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                      <ContentTags item={item} allTags={allTags} contentTagMap={contentTagMap} />
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">{TYPE_ICON_EMOJI[item.type]} {TYPE_LABELS[item.type]}</span>
                         {item.year && <span className="text-xs text-muted-foreground">{item.year}</span>}
@@ -711,6 +827,22 @@ export default function ContentPage() {
                     {detailItem.status === 1 ? '已上线' : '已下线'}
                   </Badge>
                 </div>
+                {/* Tags in detail */}
+                {(() => {
+                  const tagIds = contentTagMap[`${detailItem.type}-${detailItem.id}`];
+                  if (!tagIds || tagIds.length === 0) return null;
+                  const tags = tagIds.map(id => allTags.find(t => t.id === id)).filter(Boolean) as TagItem[];
+                  if (tags.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {tags.map(tag => (
+                        <span key={tag.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: tag.color || '#6B7280' }}>
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -750,6 +882,12 @@ export default function ContentPage() {
         }
       >
         <ContentFormFields form={editForm} onChange={(f) => { setEditForm(f); setFormErrors({}); }} errors={formErrors} />
+        {allTags.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <label className="text-sm font-medium text-foreground mb-2 block">🏷️ 内容标签</label>
+            <TagSelector allTags={allTags} selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
+          </div>
+        )}
       </Modal>
 
       {/* Edit Modal */}
@@ -765,6 +903,12 @@ export default function ContentPage() {
         }
       >
         <ContentFormFields form={editForm} onChange={(f) => { setEditForm(f); setFormErrors({}); }} showStatus errors={formErrors} />
+        {allTags.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <label className="text-sm font-medium text-foreground mb-2 block">🏷️ 内容标签</label>
+            <TagSelector allTags={allTags} selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
+          </div>
+        )}
       </Modal>
     </div>
   );

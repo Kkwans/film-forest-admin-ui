@@ -373,6 +373,9 @@ export const tagApi = {
   getContentTags: (contentType: string, contentId: number) => adminClient.get(`/api/tags/content/${contentType}/${contentId}`),
   /** 设置内容的标签 */
   setContentTags: (contentType: string, contentId: number, tagIds: number[]) => adminClient.put(`/api/tags/content/${contentType}/${contentId}`, { tagIds }),
+  /** 批量获取多个内容的标签 */
+  batchGetContentTags: (items: Array<{ contentType: string; contentId: number }>) =>
+    adminClient.post('/api/tags/content/batch', items),
 };
 
 export default client;

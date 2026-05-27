@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox } from 'lucide-react';
+import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox, Tags } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
@@ -303,6 +303,7 @@ export default function AdminDashboard() {
           { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-500', bg: 'bg-blue-500/10' },
           { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-violet-500', bg: 'bg-violet-500/10' },
           { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: '标签管理', desc: '管理内容标签', icon: Tags, href: '/tags', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
           { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         ].map((action) => (
           <Link
