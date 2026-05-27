@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 import { resourceApi, type SaveMagnetData, type SaveCloudData } from '@/lib/api';
@@ -345,15 +346,13 @@ export default function ResourcesPage() {
   }) {
     return (
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <select
+        <Select
           value={filter.contentType}
-          onChange={e => setFilter({ ...filter, contentType: e.target.value })}
-          className="h-8 px-3 rounded-lg border bg-background text-foreground text-xs"
-        >
-          {CONTENT_TYPE_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          onChange={v => setFilter({ ...filter, contentType: v })}
+          options={CONTENT_TYPE_OPTIONS}
+          className="w-28"
+          size="sm"
+        />
         <div className="relative flex-1 min-w-[180px] max-w-[300px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input
@@ -458,9 +457,7 @@ export default function ResourcesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">内容类型</label>
-                <select value={editingMagnet.contentType} onChange={e => setEditingMagnet({...editingMagnet, contentType: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                  {CONTENT_TYPE_OPTIONS.filter(o => o.value).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+                <Select value={editingMagnet.contentType || ''} onChange={v => setEditingMagnet({...editingMagnet, contentType: v})} options={CONTENT_TYPE_OPTIONS.filter(o => o.value)} />
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">内容ID <span className="text-destructive">*</span></label>
@@ -478,9 +475,7 @@ export default function ResourcesPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">分辨率</label>
-                <select value={editingMagnet.resolution || ''} onChange={e => setEditingMagnet({...editingMagnet, resolution: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                  {RESOLUTION_OPTIONS.map(r => <option key={r} value={r}>{r || '未知'}</option>)}
-                </select>
+                <Select value={editingMagnet.resolution || ''} onChange={v => setEditingMagnet({...editingMagnet, resolution: v})} options={RESOLUTION_OPTIONS.map(r => ({ label: r || '未知', value: r }))} />
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">排序</label>
@@ -515,9 +510,7 @@ export default function ResourcesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">内容类型</label>
-                <select value={editingCloud.contentType} onChange={e => setEditingCloud({...editingCloud, contentType: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                  {CONTENT_TYPE_OPTIONS.filter(o => o.value).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+                <Select value={editingCloud.contentType || ''} onChange={v => setEditingCloud({...editingCloud, contentType: v})} options={CONTENT_TYPE_OPTIONS.filter(o => o.value)} />
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">内容ID <span className="text-destructive">*</span></label>
@@ -531,9 +524,7 @@ export default function ResourcesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">网盘类型</label>
-                <select value={editingCloud.diskType} onChange={e => setEditingCloud({...editingCloud, diskType: e.target.value})} className="h-9 px-3 rounded-lg border bg-background text-foreground text-sm">
-                  {Object.entries(DISK_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                <Select value={editingCloud.diskType} onChange={v => setEditingCloud({...editingCloud, diskType: v})} options={Object.entries(DISK_TYPE_LABELS).map(([k, v]) => ({ label: v, value: k }))} />
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">排序</label>

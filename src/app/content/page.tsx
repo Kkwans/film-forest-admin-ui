@@ -538,21 +538,20 @@ export default function ContentPage() {
     });
     if (!ok) return;
     setBatchProcessing(true);
-    let successCount = 0;
-    for (const key of selectedKeys) {
+    const entries = Array.from(selectedKeys).map(key => {
       const [type, idStr] = key.split('-');
-      const id = Number(idStr);
-      try {
-        await dispatchByType(type as ContentType, {
-          movie: () => contentApi.deleteMovie(id),
-          drama: () => contentApi.deleteDrama(id),
-          variety: () => contentApi.deleteVariety(id),
-          anime: () => contentApi.deleteAnime(id),
-          short_drama: () => contentApi.deleteShortDrama(id),
-        });
-        successCount++;
-      } catch {}
-    }
+      return { type: type as ContentType, id: Number(idStr) };
+    });
+    const results = await Promise.allSettled(
+      entries.map(e => dispatchByType(e.type, {
+        movie: () => contentApi.deleteMovie(e.id),
+        drama: () => contentApi.deleteDrama(e.id),
+        variety: () => contentApi.deleteVariety(e.id),
+        anime: () => contentApi.deleteAnime(e.id),
+        short_drama: () => contentApi.deleteShortDrama(e.id),
+      }))
+    );
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
     toast.success(`成功删除 ${successCount} 条内容`);
     setSelectedKeys(new Set());
     setBatchProcessing(false);
@@ -562,34 +561,42 @@ export default function ContentPage() {
   const handleBatchToggleStatus = async (newStatus: number) => {
     if (selectedKeys.size === 0) return;
     setBatchProcessing(true);
-    let successCount = 0;
-    for (const key of selectedKeys) {
-      const [type, idStr] = key.split('-');
-      const id = Number(idStr);
-      const item = filtered.find(i => i.id === id && i.type === type);
-      if (!item || item.status === newStatus) continue;
-      try {
-        const data = { ...item, status: newStatus };
-        await dispatchByType(type as ContentType, {
-          movie: () => contentApi.updateMovie(id, data),
-          drama: () => contentApi.updateDrama(id, data),
-          variety: () => contentApi.updateVariety(id, data),
-          anime: () => contentApi.updateAnime(id, data),
-          short_drama: () => contentApi.updateShortDrama(id, data),
+    const entries = Array.from(selectedKeys)
+      .map(key => {
+        const [type, idStr] = key.split('-');
+        const id = Number(idStr);
+        const item = filtered.find(i => i.id === id && i.type === type);
+        return { type: type as ContentType, id, item };
+      })
+      .filter(e => e.item && e.item.status !== newStatus);
+    const results = await Promise.allSettled(
+      entries.map(e => {
+        const data = { ...e.item!, status: newStatus };
+        return dispatchByType(e.type, {
+          movie: () => contentApi.updateMovie(e.id, data),
+          drama: () => contentApi.updateDrama(e.id, data),
+          variety: () => contentApi.updateVariety(e.id, data),
+          anime: () => contentApi.updateAnime(e.id, data),
+          short_drama: () => contentApi.updateShortDrama(e.id, data),
         });
-        successCount++;
-      } catch {}
-    }
+      })
+    );
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
     toast.success(`成功${newStatus === 1 ? '上线' : '下线'} ${successCount} 条内容`);
     setSelectedKeys(new Set());
     setBatchProcessing(false);
     fetchItems();
   };
 
-  // Keyboard shortcut: Ctrl+Enter to save in modal
+  // Keyboard shortcut: Ctrl+Enter to save in modal, Escape to close
   useEffect(() => {
-    if (!editingItem && !creatingNew) return;
+    if (!editingItem && !creatingNew && !detailItem) return;
     const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (detailItem) setDetailItem(null);
+        else if (creatingNew) { setCreatingNew(false); setFormErrors({}); }
+        else if (editingItem) { setEditingItem(null); setFormErrors({}); }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (editingItem) handleSaveEdit();
@@ -598,7 +605,7 @@ export default function ContentPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editingItem, creatingNew, editForm]);
+  }, [editingItem, creatingNew, detailItem, editForm]);
 
   return (
     <div className="flex flex-col gap-6">

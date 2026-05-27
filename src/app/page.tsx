@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox, Tags } from 'lucide-react';
+import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox, Tags, Users, Settings } from 'lucide-react';
 import { contentApi, crawlerApi } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
@@ -305,6 +305,8 @@ export default function AdminDashboard() {
           { label: '数据统计', desc: '查看数据图表', icon: TrendingUp, href: '/stats', color: 'text-amber-500', bg: 'bg-amber-500/10' },
           { label: '标签管理', desc: '管理内容标签', icon: Tags, href: '/tags', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
           { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: '用户管理', desc: '管理用户账号', icon: Users, href: '/users', color: 'text-rose-500', bg: 'bg-rose-500/10' },
+          { label: '系统设置', desc: '配置站点参数', icon: Settings, href: '/settings', color: 'text-slate-500', bg: 'bg-slate-500/10' },
         ].map((action) => (
           <Link
             key={action.label}

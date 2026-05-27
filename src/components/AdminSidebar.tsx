@@ -77,7 +77,7 @@ export default function AdminSidebar() {
           </div>
           <div>
             <p className="font-bold text-sidebar-foreground tracking-tight">影视森林</p>
-            <p className="text-xs text-sidebar-foreground/40">管理后台 v0.1.0</p>
+            <p className="text-xs text-sidebar-foreground/40">管理后台 v0.2.0</p>
           </div>
         </div>
 
