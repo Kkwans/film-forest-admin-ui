@@ -48,7 +48,7 @@ interface SourceSite {
   id: number;
   name: string;
   url: string;
-  enabled: boolean;
+  enabled: boolean | number;
 }
 
 interface PageResult<T> {
@@ -322,24 +322,25 @@ export default function ResourcesPage() {
   const handleToggleSource = async (id: number) => {
     const source = sources.find(s => s.id === id);
     if (!source) return;
+    const newEnabled = !source.enabled;
     try {
-      await resourceApi.toggleSource(id, !source.enabled);
-      setSources(sources.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
-      toast.success(source.enabled ? '已禁用' : '已启用');
+      await resourceApi.toggleSource(id, newEnabled);
+      setSources(sources.map(s => s.id === id ? { ...s, enabled: newEnabled } : s));
+      toast.success(newEnabled ? '已启用' : '已禁用');
     } catch {
       toast.error('操作失败');
     }
   };
 
   const handleEditSource = (source: SourceSite) => {
-    setEditingSource({ ...source });
+    setEditingSource({ ...source, enabled: !!source.enabled });
     setShowSourceForm(true);
   };
 
   const handleSaveSource = async () => {
     if (!editingSource || !editingSource.name.trim()) return;
     try {
-      await resourceApi.saveSource(editingSource);
+      await resourceApi.saveSource({ ...editingSource, enabled: !!editingSource.enabled });
       toast.success('来源已保存');
       fetchBaseData();
       setShowSourceForm(false);

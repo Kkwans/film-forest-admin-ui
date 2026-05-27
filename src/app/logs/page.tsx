@@ -233,8 +233,9 @@ export default function LogsPage() {
               <FileText className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-sm">暂无日志数据</p>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
+          ) : (<>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
@@ -272,7 +273,34 @@ export default function LogsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border">
+              {logs.map(log => (
+                <div key={log.id} className="p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                        {(log.username || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-foreground truncate">{log.username || '-'}</span>
+                    </div>
+                    {log.status === 1 ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> 成功</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-destructive shrink-0" title={log.errorMessage || ''}><XCircle className="w-3.5 h-3.5" /> 失败</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <Badge variant="outline" className="text-xs">{ACTION_LABELS[log.action] || log.action}</Badge>
+                    <span className="text-xs text-muted-foreground">{MODULE_LABELS[log.module] || log.module}</span>
+                    {log.target && <span className="text-xs text-foreground truncate max-w-[160px]">{log.target}</span>}
+                  </div>
+                  {log.detail && <p className="text-xs text-muted-foreground truncate">{log.detail}</p>}
+                  <p className="text-xs text-muted-foreground mt-1">{log.createdAt ? new Date(log.createdAt).toLocaleString('zh-CN') : '-'}</p>
+                </div>
+              ))}
+            </div>
+          </>)}
         </CardContent>
       </Card>
 
