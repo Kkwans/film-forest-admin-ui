@@ -107,23 +107,22 @@ export default function TagsPage() {
     }
   };
 
-  const handleDelete = (tag: TagItem) => {
-    dialog.confirm({
+  const handleDelete = async (tag: TagItem) => {
+    const ok = await dialog.confirm({
       title: '删除标签',
       content: `确定要删除标签「${tag.name}」吗？关联的内容不会被删除，但会失去该标签标记。`,
       confirmText: '删除',
       cancelText: '取消',
       variant: 'danger',
-      onConfirm: async () => {
-        try {
-          await tagApi.delete(tag.id);
-          toast.success('标签已删除');
-          loadTags();
-        } catch (e: any) {
-          toast.error(e.response?.data?.message || '删除失败');
-        }
-      },
     });
+    if (!ok) return;
+    try {
+      await tagApi.delete(tag.id);
+      toast.success('标签已删除');
+      loadTags();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '删除失败');
+    }
   };
 
   return (

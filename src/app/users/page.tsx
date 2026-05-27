@@ -53,7 +53,7 @@ export default function UsersPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
-  const [form, setForm] = useState({ username: '', password: '', nickname: '', email: '', phone: '', status: 1 });
+  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', nickname: '', email: '', phone: '', status: 1 });
   const [saving, setSaving] = useState(false);
 
   // Password reset modal
@@ -61,6 +61,18 @@ export default function UsersPage() {
   const [resetUserId, setResetUserId] = useState<number | null>(null);
   const [resetUsername, setResetUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // Escape key to close modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showResetModal) { setShowResetModal(false); }
+        else if (showModal) { setShowModal(false); }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showModal, showResetModal]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -85,13 +97,13 @@ export default function UsersPage() {
 
   const openCreateModal = () => {
     setEditingUser(null);
-    setForm({ username: '', password: '', nickname: '', email: '', phone: '', status: 1 });
+    setForm({ username: '', password: '', confirmPassword: '', nickname: '', email: '', phone: '', status: 1 });
     setShowModal(true);
   };
 
   const openEditModal = (user: UserItem) => {
     setEditingUser(user);
-    setForm({ username: user.username, password: '', nickname: user.nickname || '', email: user.email || '', phone: user.phone || '', status: user.status });
+    setForm({ username: user.username, password: '', confirmPassword: '', nickname: user.nickname || '', email: user.email || '', phone: user.phone || '', status: user.status });
     setShowModal(true);
   };
 
@@ -99,6 +111,7 @@ export default function UsersPage() {
     if (!editingUser && !form.username.trim()) { toast.error('用户名不能为空'); return; }
     if (!editingUser && !form.password.trim()) { toast.error('密码不能为空'); return; }
     if (!editingUser && form.password.length < 6) { toast.error('密码长度至少 6 位'); return; }
+    if (!editingUser && form.password !== form.confirmPassword) { toast.error('两次密码不一致'); return; }
 
     setSaving(true);
     try {
@@ -131,23 +144,22 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = (user: UserItem) => {
-    dialog.confirm({
+  const handleDelete = async (user: UserItem) => {
+    const ok = await dialog.confirm({
       title: '删除用户',
       content: `确定要删除用户「${user.username}」吗？此操作不可恢复。`,
       confirmText: '删除',
       cancelText: '取消',
       variant: 'danger',
-      onConfirm: async () => {
-        try {
-          await userApi.delete(user.id);
-          toast.success('用户已删除');
-          loadUsers();
-        } catch (e: any) {
-          toast.error(e.response?.data?.message || '删除失败');
-        }
-      },
     });
+    if (!ok) return;
+    try {
+      await userApi.delete(user.id);
+      toast.success('用户已删除');
+      loadUsers();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '删除失败');
+    }
   };
 
   const handleToggleStatus = async (user: UserItem) => {
@@ -237,7 +249,9 @@ export default function UsersPage() {
               <p className="text-sm">暂无用户数据</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
@@ -291,6 +305,47 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border">
+              {users.map(user => (
+                <div key={user.id} className="p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                        {user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{user.username}</p>
+                        <p className="text-xs text-muted-foreground">{user.nickname || '-'}</p>
+                      </div>
+                    </div>
+                    <Badge variant={user.status === 1 ? 'default' : 'destructive'} className="shrink-0">
+                      {user.status === 1 ? '正常' : '禁用'}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-2">
+                    {user.email && <span>📧 {user.email}</span>}
+                    {user.phone && <span>📱 {user.phone}</span>}
+                    <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleToggleStatus(user)} className="p-2 rounded-lg hover:bg-muted transition-colors" title={user.status === 1 ? '禁用' : '启用'}>
+                      {user.status === 1 ? <ShieldOff className="w-4 h-4 text-destructive" /> : <Shield className="w-4 h-4 text-emerald-500" />}
+                    </button>
+                    <button onClick={() => openResetPassword(user)} className="p-2 rounded-lg hover:bg-muted transition-colors" title="重置密码">
+                      <Key className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <button onClick={() => openEditModal(user)} className="p-2 rounded-lg hover:bg-muted transition-colors" title="编辑">
+                      <Pencil className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <button onClick={() => handleDelete(user)} className="p-2 rounded-lg hover:bg-destructive/10 transition-colors" title="删除">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -323,6 +378,12 @@ export default function UsersPage() {
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-foreground">密码 <span className="text-destructive">*</span></label>
                 <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="至少 6 位" className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+              </div>
+            )}
+            {!editingUser && (
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">确认密码 <span className="text-destructive">*</span></label>
+                <input type="password" value={form.confirmPassword} onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))} placeholder="再次输入密码" className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
               </div>
             )}
             <div className="grid gap-2">
