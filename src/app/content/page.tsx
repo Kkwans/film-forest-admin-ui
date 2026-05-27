@@ -191,7 +191,7 @@ export default function ContentPage() {
 
       const isAllTypes = typeFilter === 'all';
       // typeFilter='all' 时拉取全量数据做客户端分页，避免各类型各取一页导致数据错乱
-      const fetchSize = isAllTypes ? 200 : pageSize;
+      const fetchSize = isAllTypes ? 50 : pageSize;
       const fetchPage = isAllTypes ? 1 : page;
 
       const results = await Promise.allSettled(

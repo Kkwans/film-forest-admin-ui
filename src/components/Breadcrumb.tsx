@@ -11,6 +11,9 @@ const ROUTE_LABELS: Record<string, string> = {
   '/crawler': '爬虫管理',
   '/stats': '数据统计',
   '/resources': '资源管理',
+  '/tags': '标签管理',
+  '/users': '用户管理',
+  '/logs': '操作日志',
   '/settings': '系统设置',
 };
 

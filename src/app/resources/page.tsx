@@ -95,7 +95,49 @@ const CONTENT_TYPE_OPTIONS = [
 
 const RESOLUTION_OPTIONS = ['', '1080P', '4K', '720P', '2160P', 'BluRay'];
 
-
+/** 筛选栏组件（提取到外部避免重渲染导致状态丢失） */
+function FilterBar({ filter, setFilter, onSearch, onReset, onAdd, type }: {
+  filter: { contentType: string; keyword: string };
+  setFilter: (f: { contentType: string; keyword: string }) => void;
+  onSearch: () => void;
+  onReset: () => void;
+  onAdd: () => void;
+  type: 'magnet' | 'cloud';
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <Select
+        value={filter.contentType}
+        onChange={v => setFilter({ ...filter, contentType: v })}
+        options={CONTENT_TYPE_OPTIONS}
+        className="w-28"
+        size="sm"
+      />
+      <div className="relative flex-1 min-w-[180px] max-w-[300px]">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <input
+          value={filter.keyword}
+          onChange={e => setFilter({ ...filter, keyword: e.target.value })}
+          onKeyDown={e => e.key === 'Enter' && onSearch()}
+          placeholder="搜索标题..."
+          className="w-full h-8 pl-8 pr-3 rounded-lg border bg-background text-foreground text-xs"
+        />
+      </div>
+      <button onClick={onSearch} className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+        筛选
+      </button>
+      {(filter.contentType || filter.keyword) && (
+        <button onClick={onReset} className="h-8 px-3 rounded-lg border text-xs text-muted-foreground hover:bg-muted transition-colors">
+          重置
+        </button>
+      )}
+      <div className="flex-1" />
+      <button onClick={onAdd} className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
+        <Plus className="w-3 h-3" /> {type === 'magnet' ? '新增磁力' : '新增网盘'}
+      </button>
+    </div>
+  );
+}
 
 export default function ResourcesPage() {
   const toast = useToast();
@@ -130,6 +172,16 @@ export default function ResourcesPage() {
   const PAGE_SIZE = 20;
 
   const toggleSection = (key: string) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const handleAddMagnet = () => {
+    setEditingMagnet({ contentType: 'movie', contentId: 0, title: '', magnetUrl: '', resolution: '', hasSubtitle: false, isSpecialSub: false, sort: 0 });
+    setShowMagnetForm(true);
+  };
+
+  const handleAddCloud = () => {
+    setEditingCloud({ contentType: 'movie', contentId: 0, title: '', diskType: 'baidu', url: '', password: '', sort: 0 });
+    setShowCloudForm(true);
+  };
 
   // ===== 加载磁力资源 =====
   const fetchMagnets = useCallback(async (page: number, filter?: { contentType?: string; keyword?: string }) => {
@@ -213,11 +265,6 @@ export default function ResourcesPage() {
     setShowMagnetForm(true);
   };
 
-  const handleAddMagnet = () => {
-    setEditingMagnet({ contentType: 'movie', contentId: 0, title: '', magnetUrl: '', resolution: '', hasSubtitle: false, isSpecialSub: false, sort: 0 });
-    setShowMagnetForm(true);
-  };
-
   const handleSaveMagnet = async () => {
     if (!editingMagnet) return;
     if (!editingMagnet.magnetUrl?.trim()) { toast.error('磁力链接不能为空'); return; }
@@ -250,11 +297,6 @@ export default function ResourcesPage() {
   // ===== 网盘资源编辑 =====
   const handleEditCloud = (c: CloudResource) => {
     setEditingCloud({ ...c });
-    setShowCloudForm(true);
-  };
-
-  const handleAddCloud = () => {
-    setEditingCloud({ contentType: 'movie', contentId: 0, title: '', diskType: 'baidu', url: '', password: '', sort: 0 });
     setShowCloudForm(true);
   };
 
@@ -335,49 +377,6 @@ export default function ResourcesPage() {
     setEditingSource({ id: 0, name: '', url: '', enabled: true });
     setShowSourceForm(true);
   };
-
-  // ===== 筛选栏组件 =====
-  function FilterBar({ filter, setFilter, onSearch, onReset, type }: {
-    filter: { contentType: string; keyword: string };
-    setFilter: (f: { contentType: string; keyword: string }) => void;
-    onSearch: () => void;
-    onReset: () => void;
-    type: 'magnet' | 'cloud';
-  }) {
-    return (
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <Select
-          value={filter.contentType}
-          onChange={v => setFilter({ ...filter, contentType: v })}
-          options={CONTENT_TYPE_OPTIONS}
-          className="w-28"
-          size="sm"
-        />
-        <div className="relative flex-1 min-w-[180px] max-w-[300px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            value={filter.keyword}
-            onChange={e => setFilter({ ...filter, keyword: e.target.value })}
-            onKeyDown={e => e.key === 'Enter' && onSearch()}
-            placeholder="搜索标题..."
-            className="w-full h-8 pl-8 pr-3 rounded-lg border bg-background text-foreground text-xs"
-          />
-        </div>
-        <button onClick={onSearch} className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
-          筛选
-        </button>
-        {(filter.contentType || filter.keyword) && (
-          <button onClick={onReset} className="h-8 px-3 rounded-lg border text-xs text-muted-foreground hover:bg-muted transition-colors">
-            重置
-          </button>
-        )}
-        <div className="flex-1" />
-        <button onClick={type === 'magnet' ? handleAddMagnet : handleAddCloud} className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
-          <Plus className="w-3 h-3" /> {type === 'magnet' ? '新增磁力' : '新增网盘'}
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -555,7 +554,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.magnet && (
         <CardContent>
-          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} onReset={() => { setMagnetFilter({ contentType: '', keyword: '' }); fetchMagnets(1, {}); }} type="magnet" />
+          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} onReset={() => { setMagnetFilter({ contentType: '', keyword: '' }); fetchMagnets(1, {}); }} onAdd={handleAddMagnet} type="magnet" />
           {magnetLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
@@ -630,7 +629,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.cloud && (
         <CardContent>
-          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} onReset={() => { setCloudFilter({ contentType: '', keyword: '' }); fetchClouds(1, {}); }} type="cloud" />
+          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} onReset={() => { setCloudFilter({ contentType: '', keyword: '' }); fetchClouds(1, {}); }} onAdd={handleAddCloud} type="cloud" />
           {cloudLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
