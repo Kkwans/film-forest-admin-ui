@@ -283,8 +283,39 @@ export const statsApi = {
   getTrend: (days?: number) => adminClient.get('/api/stats/trend', { params: { days } }),
   /** 热门搜索词（近N天，Top M） */
   getHotSearch: (days?: number, limit?: number) => adminClient.get('/api/stats/hot-search', { params: { days, limit } }),
+  /** 数据报表 */
+  getReport: (days?: number) => adminClient.get('/api/stats/report', { params: { days } }),
+  /** 导出概览 CSV */
+  exportOverview: () => adminClient.get('/api/stats/export/overview', { responseType: 'blob' }),
+  /** 导出内容列表 CSV */
+  exportContent: (type?: string) => adminClient.get('/api/stats/export/content', { params: { type }, responseType: 'blob' }),
+  /** 导出搜索热词 CSV */
+  exportHotSearch: (days?: number) => adminClient.get('/api/stats/export/hot-search', { params: { days }, responseType: 'blob' }),
 };
 
 // ---- Tags ----
+
+export interface TagItem {
+  id: number;
+  name: string;
+  color: string;
+  usageCount?: number;
+  createdAt?: string;
+}
+
+export const tagApi = {
+  /** 获取所有标签 */
+  list: () => adminClient.get('/api/tags'),
+  /** 创建标签 */
+  create: (data: { name: string; color?: string }) => adminClient.post('/api/tags', data),
+  /** 更新标签 */
+  update: (id: number, data: { name?: string; color?: string }) => adminClient.put(`/api/tags/${id}`, data),
+  /** 删除标签 */
+  delete: (id: number) => adminClient.delete(`/api/tags/${id}`),
+  /** 获取内容的标签 */
+  getContentTags: (contentType: string, contentId: number) => adminClient.get(`/api/tags/content/${contentType}/${contentId}`),
+  /** 设置内容的标签 */
+  setContentTags: (contentType: string, contentId: number, tagIds: number[]) => adminClient.put(`/api/tags/content/${contentType}/${contentId}`, { tagIds }),
+};
 
 export default client;

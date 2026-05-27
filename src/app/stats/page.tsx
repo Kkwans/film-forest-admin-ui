@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { BarChart3, Activity, Database, Inbox, TrendingUp, CheckCircle2, XCircle, Users, Search } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { BarChart3, Activity, Database, Inbox, TrendingUp, CheckCircle2, XCircle, Users, Search, Download, FileText, Loader2 } from 'lucide-react';
 import { statsApi, contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
@@ -44,14 +44,48 @@ const TYPE_LABELS: Record<string, string> = { movie: '电影', drama: '剧集', 
 const TYPE_ICONS: Record<string, string> = { movie: '🎬', drama: '📺', variety: '🎤', anime: '🎯', short_drama: '⚡' };
 const TYPE_ORDER = ['movie', 'drama', 'variety', 'anime', 'short_drama'];
 
+interface ReportData {
+  days: number;
+  startDate: string;
+  endDate: string;
+  typeGrowth: Array<{ type: string; label: string; count: number }>;
+  crawlerEfficiency: { totalRuns: number; successRuns: number; failedRuns: number; totalItems: number; totalAdded: number; totalUpdated: number; avgDurationMs: number; successRate: number; };
+  qualityStats: Array<{ type: string; label: string; total: number; highScore: number; midScore: number; lowScore: number; avgScore: number; }>;
+  dailyTrend: { dates: string[]; totals: number[]; };
+}
+
 export default function StatsPage() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [trend, setTrend] = useState<TrendData | null>(null);
   const [crawlerStats, setCrawlerStats] = useState<CrawlerStats>({ total: 0, running: 0, idle: 0, totalRuns: 0, totalItems: 0, schedules: [] });
   const [dailyStats, setDailyStats] = useState<DailyStatsItem[]>([]);
   const [hotSearch, setHotSearch] = useState<HotSearchItem[]>([]);
+  const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'charts' | 'report'>('charts');
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [reportDays, setReportDays] = useState(30);
   const toast = useToast();
+
+  const downloadCsv = useCallback(async (fetchFn: () => Promise<AxiosResponse<Blob>>, filename: string, label: string) => {
+    setExporting(label);
+    try {
+      const res = await fetchFn();
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${label}导出成功`);
+    } catch {
+      toast.error(`${label}导出失败`);
+    } finally {
+      setExporting(null);
+    }
+  }, [toast]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,9 +144,59 @@ export default function StatsPage() {
     return null;
   };
 
+  useEffect(() => {
+    if (activeTab === 'report' && !report) {
+      statsApi.getReport(reportDays).then(res => {
+        if (res.data?.code === 200) setReport(res.data.data);
+      }).catch(() => toast.error('报表数据加载失败'));
+    }
+  }, [activeTab, reportDays, report, toast]);
+
   return (
     <div className="flex flex-col gap-8">
-      <div><h1 className="text-2xl font-bold text-foreground mb-1">数据统计</h1><p className="text-sm text-muted-foreground">内容数据与爬虫运行详细分析</p></div>
+      {/* Header with tabs and export buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">数据统计</h1>
+          <p className="text-sm text-muted-foreground">内容数据与爬虫运行详细分析</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Tab switcher */}
+          <div className="flex rounded-lg bg-muted p-1">
+            <button
+              onClick={() => setActiveTab('charts')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'charts' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <span className="flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> 图表</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'report' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> 报表</span>
+            </button>
+          </div>
+          {/* Export dropdown */}
+          <div className="relative group">
+            <button
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              disabled={exporting !== null}
+            >
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {exporting ? '导出中...' : '导出'}
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+              <div className="py-1">
+                <button onClick={() => downloadCsv(statsApi.exportOverview, 'film-forest-overview.csv', '概览数据')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📊 概览数据</button>
+                <button onClick={() => downloadCsv(() => statsApi.exportContent(), 'film-forest-content-all.csv', '全部内容')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📋 全部内容</button>
+                <button onClick={() => downloadCsv(() => statsApi.exportContent('movie'), 'film-forest-movies.csv', '电影列表')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🎬 电影列表</button>
+                <button onClick={() => downloadCsv(() => statsApi.exportContent('drama'), 'film-forest-dramas.csv', '剧集列表')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📺 剧集列表</button>
+                <button onClick={() => downloadCsv(() => statsApi.exportHotSearch(30), 'film-forest-hot-search.csv', '搜索热词')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🔥 搜索热词</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
@@ -161,7 +245,8 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Content Type Cards */}
+      {/* Content Type Cards (charts tab only) */}
+      {activeTab === 'charts' && <>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {contentStats.map((stat, i) => (
           <div key={stat.label} className="relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/10 transition-colors group">
@@ -301,6 +386,154 @@ export default function StatsPage() {
           ); })}
         </div>
       </div>
+      </>}
+
+      {/* ===== Report Tab ===== */}
+      {activeTab === 'report' && <>
+        {/* Report period selector */}
+        <div className="flex items-center gap-2">
+          {[7, 30, 90].map(d => (
+            <button key={d} onClick={() => { setReportDays(d); setReport(null); }}
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${reportDays === d ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:border-foreground/20'}`}>
+              近{d}天
+            </button>
+          ))}
+        </div>
+
+        {!report ? (
+          <div className="flex flex-col gap-6">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+          </div>
+        ) : <>
+          {/* Report: Type Growth */}
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-primary" /> 内容增长报告（近{report.days}天：{report.startDate} ~ {report.endDate}）
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {report.typeGrowth.map((item, i) => (
+                  <div key={item.type} className="p-4 rounded-xl bg-secondary/50 border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                    <p className="text-2xl font-bold text-foreground">{item.count.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">新增内容</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Report: Crawler Efficiency */}
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-blue-500" /> 爬虫效率报告
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">总运行次数</p>
+                  <p className="text-xl font-bold text-foreground">{report.crawlerEfficiency.totalRuns.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">成功率</p>
+                  <p className="text-xl font-bold text-emerald-500">{report.crawlerEfficiency.successRate}%</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">总抓取量</p>
+                  <p className="text-xl font-bold text-foreground">{report.crawlerEfficiency.totalItems.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">平均耗时</p>
+                  <p className="text-xl font-bold text-foreground">{(report.crawlerEfficiency.avgDurationMs / 1000).toFixed(1)}s</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">新增内容</p>
+                  <p className="text-xl font-bold text-emerald-500">{report.crawlerEfficiency.totalAdded.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">更新内容</p>
+                  <p className="text-xl font-bold text-amber-500">{report.crawlerEfficiency.totalUpdated.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">成功次数</p>
+                  <p className="text-xl font-bold text-foreground">{report.crawlerEfficiency.successRuns.toLocaleString()}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <p className="text-xs text-muted-foreground">失败次数</p>
+                  <p className="text-xl font-bold text-rose-500">{report.crawlerEfficiency.failedRuns.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Report: Content Quality */}
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-violet-500" /> 内容质量报告（豆瓣评分分布）
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-3 text-muted-foreground font-medium">类型</th>
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium">总量</th>
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium">均分</th>
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium">高分(≥8)</th>
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium">中分(5-8)</th>
+                      <th className="text-right py-2 px-3 text-muted-foreground font-medium">低分{'<'}5</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.qualityStats.map(q => (
+                      <tr key={q.type} className="border-b border-border/50 hover:bg-muted/50">
+                        <td className="py-2.5 px-3 font-medium text-foreground">{q.label}</td>
+                        <td className="py-2.5 px-3 text-right text-foreground">{q.total.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right">
+                          <span className={`font-medium ${q.avgScore >= 7 ? 'text-emerald-500' : q.avgScore >= 5 ? 'text-amber-500' : 'text-rose-500'}`}>
+                            {q.avgScore > 0 ? q.avgScore.toFixed(1) : '-'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-500">{q.highScore.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right text-amber-500">{q.midScore.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right text-rose-500">{q.lowScore.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Report: Daily Trend */}
+          {report.dailyTrend && (
+            <div className="rounded-xl bg-card border border-border overflow-hidden">
+              <div className="px-5 py-4 border-b border-border/60">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full bg-amber-500" /> 每日新增趋势
+                </h3>
+              </div>
+              <div className="p-5">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={report.dailyTrend.dates.map((d, i) => ({ date: d, 新增: report.dailyTrend.totals[i] }))} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <Tooltip isAnimationActive={false} contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--foreground)' }} />
+                    <Bar dataKey="新增" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </>}
+      </>}
     </div>
   );
 }
