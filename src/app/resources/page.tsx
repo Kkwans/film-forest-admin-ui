@@ -163,13 +163,13 @@ export default function ResourcesPage() {
   const toggleSection = (key: string) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   // ===== 加载磁力资源 =====
-  const fetchMagnets = useCallback(async (page = magnetPage, filter = magnetFilter) => {
+  const fetchMagnets = useCallback(async (page: number, filter?: { contentType?: string; keyword?: string }) => {
     try {
       setMagnetLoading(true);
       const res = await resourceApi.listMagnet({
         page, size: PAGE_SIZE,
-        contentType: filter.contentType || undefined,
-        keyword: filter.keyword || undefined,
+        contentType: filter?.contentType || undefined,
+        keyword: filter?.keyword || undefined,
       }) as AxiosResponse<MagnetPageResult>;
       const data = res.data?.data;
       setMagnets(data?.records || []);
@@ -181,16 +181,16 @@ export default function ResourcesPage() {
     } finally {
       setMagnetLoading(false);
     }
-  }, [magnetPage, magnetFilter, toast]);
+  }, [toast]);
 
   // ===== 加载网盘资源 =====
-  const fetchClouds = useCallback(async (page = cloudPage, filter = cloudFilter) => {
+  const fetchClouds = useCallback(async (page: number, filter?: { contentType?: string; keyword?: string }) => {
     try {
       setCloudLoading(true);
       const res = await resourceApi.listCloud({
         page, size: PAGE_SIZE,
-        contentType: filter.contentType || undefined,
-        keyword: filter.keyword || undefined,
+        contentType: filter?.contentType || undefined,
+        keyword: filter?.keyword || undefined,
       }) as AxiosResponse<CloudPageResult>;
       const data = res.data?.data;
       setClouds(data?.records || []);
@@ -202,7 +202,7 @@ export default function ResourcesPage() {
     } finally {
       setCloudLoading(false);
     }
-  }, [cloudPage, cloudFilter, toast]);
+  }, [toast]);
 
   const fetchBaseData = async () => {
     try {
@@ -223,19 +223,19 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     fetchBaseData();
-    fetchMagnets(1);
-    fetchClouds(1);
+    fetchMagnets(1, {});
+    fetchClouds(1, {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===== 磁力资源筛选 =====
   const handleMagnetSearch = () => {
-    fetchMagnets(1, magnetFilter);
+    fetchMagnets(1, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword });
   };
 
   // ===== 网盘资源筛选 =====
   const handleCloudSearch = () => {
-    fetchClouds(1, cloudFilter);
+    fetchClouds(1, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword });
   };
 
   // ===== 磁力资源编辑 =====
@@ -258,7 +258,7 @@ export default function ResourcesPage() {
       toast.success(editingMagnet.id ? '磁力资源已更新' : '磁力资源已添加');
       setShowMagnetForm(false);
       setEditingMagnet(null);
-      fetchMagnets(editingMagnet.id ? magnetPage : 1);
+      fetchMagnets(editingMagnet.id ? magnetPage : 1, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword });
       fetchBaseData();
     } catch {
       toast.error('保存失败');
@@ -271,7 +271,7 @@ export default function ResourcesPage() {
     try {
       await resourceApi.deleteMagnet(id);
       toast.success('已删除');
-      fetchMagnets(magnetPage);
+      fetchMagnets(magnetPage, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword });
       fetchBaseData();
     } catch {
       toast.error('删除失败');
@@ -298,7 +298,7 @@ export default function ResourcesPage() {
       toast.success(editingCloud.id ? '网盘资源已更新' : '网盘资源已添加');
       setShowCloudForm(false);
       setEditingCloud(null);
-      fetchClouds(editingCloud.id ? cloudPage : 1);
+      fetchClouds(editingCloud.id ? cloudPage : 1, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword });
       fetchBaseData();
     } catch {
       toast.error('保存失败');
@@ -311,7 +311,7 @@ export default function ResourcesPage() {
     try {
       await resourceApi.deleteCloud(id);
       toast.success('已删除');
-      fetchClouds(cloudPage);
+      fetchClouds(cloudPage, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword });
       fetchBaseData();
     } catch {
       toast.error('删除失败');
@@ -418,7 +418,7 @@ export default function ResourcesPage() {
           <h1 className="text-2xl font-bold text-foreground">资源管理</h1>
           <p className="text-sm text-muted-foreground mt-1">媒体资源存储与来源管理</p>
         </div>
-        <button onClick={() => { fetchBaseData(); fetchMagnets(magnetPage); fetchClouds(cloudPage); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <button onClick={() => { fetchBaseData(); fetchMagnets(magnetPage, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword }); fetchClouds(cloudPage, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword }); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           刷新
         </button>
@@ -595,7 +595,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.magnet && (
         <CardContent>
-          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} onReset={() => { setMagnetFilter({ contentType: '', keyword: '' }); fetchMagnets(1, { contentType: '', keyword: '' }); }} type="magnet" />
+          <FilterBar filter={magnetFilter} setFilter={setMagnetFilter} onSearch={handleMagnetSearch} onReset={() => { setMagnetFilter({ contentType: '', keyword: '' }); fetchMagnets(1, {}); }} type="magnet" />
           {magnetLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
@@ -650,7 +650,7 @@ export default function ResourcesPage() {
               </div>
             </div>
           )}
-          <Pagination current={magnetPage} total={magnetTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchMagnets(p)} />
+          <Pagination current={magnetPage} total={magnetTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchMagnets(p, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword })} />
         </CardContent>
         )}
       </Card>
@@ -667,7 +667,7 @@ export default function ResourcesPage() {
         </CardHeader>
         {expandedSections.cloud && (
         <CardContent>
-          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} onReset={() => { setCloudFilter({ contentType: '', keyword: '' }); fetchClouds(1, { contentType: '', keyword: '' }); }} type="cloud" />
+          <FilterBar filter={cloudFilter} setFilter={setCloudFilter} onSearch={handleCloudSearch} onReset={() => { setCloudFilter({ contentType: '', keyword: '' }); fetchClouds(1, {}); }} type="cloud" />
           {cloudLoading ? (
             <div className="h-48 flex items-center justify-center text-muted-foreground">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 加载中...
@@ -724,7 +724,7 @@ export default function ResourcesPage() {
               </div>
             </div>
           )}
-          <Pagination current={cloudPage} total={cloudTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchClouds(p)} />
+          <Pagination current={cloudPage} total={cloudTotal} pageSize={PAGE_SIZE} onChange={(p) => fetchClouds(p, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword })} />
         </CardContent>
         )}
       </Card>

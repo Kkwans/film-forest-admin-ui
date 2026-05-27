@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Search, Pencil, Trash2, ToggleLeft, ToggleRight, Key, Loader2, ChevronLeft, ChevronRight, Shield, ShieldOff } from 'lucide-react';
+import { Users, UserPlus, Search, Pencil, Trash2, ToggleLeft, ToggleRight, Key, Loader2, ChevronLeft, ChevronRight, Shield, ShieldOff, X } from 'lucide-react';
 import { userApi, type UserItem } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -25,7 +25,30 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [size] = useState(20);
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search keyword
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  // Keyboard shortcut: Ctrl+F to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +65,7 @@ export default function UsersPage() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await userApi.list({ page, size, keyword: keyword || undefined });
+      const res = await userApi.list({ page, size, keyword: debouncedKeyword || undefined });
       if (res.data?.code === 200) {
         const data = res.data.data as PageResult<UserItem>;
         setUsers(data.records);
@@ -54,11 +77,11 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, keyword]);
+  }, [page, size, debouncedKeyword]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const handleSearch = () => { setPage(1); loadUsers(); };
+  const handleSearch = () => { setPage(1); };
 
   const openCreateModal = () => {
     setEditingUser(null);
@@ -180,16 +203,22 @@ export default function UsersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
+                ref={searchRef}
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="搜索用户名、昵称、邮箱、手机号..."
-                className="h-10 pl-10 pr-4 rounded-lg border bg-background text-foreground text-sm w-full focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="搜索用户名、昵称、邮箱、手机号... (Ctrl+F)"
+                className="h-10 pl-10 pr-9 rounded-lg border bg-background text-foreground text-sm w-full focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               />
+              {keyword && (
+                <button
+                  onClick={() => { setKeyword(''); searchRef.current?.focus(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                  title="清除搜索"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <button onClick={handleSearch} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors">
-              搜索
-            </button>
           </div>
         </CardContent>
       </Card>

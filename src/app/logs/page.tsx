@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Search, Loader2, ChevronLeft, ChevronRight, Activity, CheckCircle2, XCircle, Filter } from 'lucide-react';
+import { FileText, Search, Loader2, ChevronLeft, ChevronRight, Activity, CheckCircle2, XCircle, Filter, X } from 'lucide-react';
 import { logApi, type LogItem } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 
@@ -38,18 +38,41 @@ export default function LogsPage() {
   const [page, setPage] = useState(1);
   const [size] = useState(20);
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<number | ''>('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<LogStats>({ total: 0, today: 0, failed: 0 });
   const [showFilters, setShowFilters] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search keyword
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  // Keyboard shortcut: Ctrl+F to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { page, size };
-      if (keyword) params.keyword = keyword;
+      const params: Record<string, unknown> = { page, size };
+      if (debouncedKeyword) params.keyword = debouncedKeyword;
       if (actionFilter) params.action = actionFilter;
       if (moduleFilter) params.module = moduleFilter;
       if (statusFilter !== '') params.status = statusFilter;
@@ -65,7 +88,7 @@ export default function LogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, keyword, actionFilter, moduleFilter, statusFilter]);
+  }, [page, size, debouncedKeyword, actionFilter, moduleFilter, statusFilter]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -77,7 +100,7 @@ export default function LogsPage() {
   useEffect(() => { loadLogs(); }, [loadLogs]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const handleSearch = () => { setPage(1); loadLogs(); };
+  const handleSearch = () => { setPage(1); };
   const handleReset = () => {
     setKeyword(''); setActionFilter(''); setModuleFilter(''); setStatusFilter('');
     setPage(1);
@@ -147,16 +170,22 @@ export default function LogsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
+                ref={searchRef}
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="搜索用户名、目标、详情..."
-                className="h-10 pl-10 pr-4 rounded-lg border bg-background text-foreground text-sm w-full focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="搜索用户名、目标、详情... (Ctrl+F)"
+                className="h-10 pl-10 pr-9 rounded-lg border bg-background text-foreground text-sm w-full focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               />
+              {keyword && (
+                <button
+                  onClick={() => { setKeyword(''); searchRef.current?.focus(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                  title="清除搜索"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <button onClick={handleSearch} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors">
-              搜索
-            </button>
             <button onClick={() => setShowFilters(!showFilters)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${showFilters ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border text-muted-foreground hover:bg-muted'}`}>
               <Filter className="w-4 h-4" /> 筛选
             </button>

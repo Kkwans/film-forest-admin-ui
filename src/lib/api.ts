@@ -31,7 +31,7 @@ adminClient.interceptors.request.use((config) => {
 adminClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.data?.code === 500 && error.response?.data?.message?.includes('未登录')) {
+    if (error.response?.status === 401 || (error.response?.data?.code === 500 && error.response?.data?.message?.includes('未登录'))) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

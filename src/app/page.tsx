@@ -18,7 +18,7 @@ interface Stats {
 
 interface RecentItem { id: number; title: string; type: string; status: number; createdAt: string; scoreDouban?: number; }
 interface StatsResponse { code: number; data: Stats; }
-interface RecentItemsResponse { code: number; data: RecentItem[]; }
+interface RecentItemsResponse { code: number; data: { records: RecentItem[]; total: number } | RecentItem[]; }
 interface CrawlerStatusItem { id: number; name: string; contentType: string; status: string; totalRuns: number; totalItems: number; enabled: number; lastRunTime: string | null; }
 interface CrawlerStatusResponse { code: number; data: { schedules: CrawlerStatusItem[]; }; }
 
@@ -48,7 +48,8 @@ export default function AdminDashboard() {
 
       if (statsRes.data?.code === 200) setStats(statsRes.data.data);
       if (allRes.data?.code === 200) {
-        const items = allRes.data.data;
+        const raw = allRes.data.data;
+        const items: RecentItem[] = Array.isArray(raw) ? raw : (raw.records || []);
         items.sort((a: RecentItem, b: RecentItem) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setRecentItems(items.slice(0, 8));
       }
