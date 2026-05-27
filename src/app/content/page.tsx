@@ -158,6 +158,8 @@ export default function ContentPage() {
   const [allTags, setAllTags] = useState<TagItem[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [contentTagMap, setContentTagMap] = useState<Record<string, number[]>>({});
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchProcessing, setBatchProcessing] = useState(false);
 
   // Debounce search keyword
   useEffect(() => {
@@ -508,6 +510,82 @@ export default function ContentPage() {
     }
   };
 
+  // ========== 批量操作 ==========
+  const toggleSelectItem = (key: string) => {
+    setSelectedKeys(prev => {
+      const s = new Set(prev);
+      s.has(key) ? s.delete(key) : s.add(key);
+      return s;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedKeys.size === filtered.length) {
+      setSelectedKeys(new Set());
+    } else {
+      setSelectedKeys(new Set(filtered.map(i => `${i.type}-${i.id}`)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedKeys.size === 0) return;
+    const ok = await dialog.confirm({
+      title: '批量删除',
+      content: `确定删除选中的 ${selectedKeys.size} 条内容？删除后不可恢复。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    setBatchProcessing(true);
+    let successCount = 0;
+    for (const key of selectedKeys) {
+      const [type, idStr] = key.split('-');
+      const id = Number(idStr);
+      try {
+        await dispatchByType(type as ContentType, {
+          movie: () => contentApi.deleteMovie(id),
+          drama: () => contentApi.deleteDrama(id),
+          variety: () => contentApi.deleteVariety(id),
+          anime: () => contentApi.deleteAnime(id),
+          short_drama: () => contentApi.deleteShortDrama(id),
+        });
+        successCount++;
+      } catch {}
+    }
+    toast.success(`成功删除 ${successCount} 条内容`);
+    setSelectedKeys(new Set());
+    setBatchProcessing(false);
+    fetchItems();
+  };
+
+  const handleBatchToggleStatus = async (newStatus: number) => {
+    if (selectedKeys.size === 0) return;
+    setBatchProcessing(true);
+    let successCount = 0;
+    for (const key of selectedKeys) {
+      const [type, idStr] = key.split('-');
+      const id = Number(idStr);
+      const item = filtered.find(i => i.id === id && i.type === type);
+      if (!item || item.status === newStatus) continue;
+      try {
+        const data = { ...item, status: newStatus };
+        await dispatchByType(type as ContentType, {
+          movie: () => contentApi.updateMovie(id, data),
+          drama: () => contentApi.updateDrama(id, data),
+          variety: () => contentApi.updateVariety(id, data),
+          anime: () => contentApi.updateAnime(id, data),
+          short_drama: () => contentApi.updateShortDrama(id, data),
+        });
+        successCount++;
+      } catch {}
+    }
+    toast.success(`成功${newStatus === 1 ? '上线' : '下线'} ${successCount} 条内容`);
+    setSelectedKeys(new Set());
+    setBatchProcessing(false);
+    fetchItems();
+  };
+
   // Keyboard shortcut: Ctrl+Enter to save in modal
   useEffect(() => {
     if (!editingItem && !creatingNew) return;
@@ -555,6 +633,41 @@ export default function ContentPage() {
           </Card>
         ))}
       </div>
+
+      {/* Batch Action Bar */}
+      {selectedKeys.size > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+          <span className="text-sm font-medium text-primary">已选 {selectedKeys.size} 项</span>
+          <div className="flex-1" />
+          <button
+            onClick={() => handleBatchToggleStatus(1)}
+            disabled={batchProcessing}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+          >
+            {batchProcessing ? '处理中...' : '批量上线'}
+          </button>
+          <button
+            onClick={() => handleBatchToggleStatus(0)}
+            disabled={batchProcessing}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 disabled:opacity-50 transition-colors"
+          >
+            {batchProcessing ? '处理中...' : '批量下线'}
+          </button>
+          <button
+            onClick={handleBatchDelete}
+            disabled={batchProcessing}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors"
+          >
+            {batchProcessing ? '处理中...' : '批量删除'}
+          </button>
+          <button
+            onClick={() => setSelectedKeys(new Set())}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            取消选择
+          </button>
+        </div>
+      )}
 
       {/* Filters - overflow-visible 使下拉菜单不被 Card 的 overflow-hidden 裁剪 */}
       <Card className="bg-card border-border overflow-visible">
@@ -615,6 +728,14 @@ export default function ContentPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-border bg-muted/40">
+                  <th className="text-center px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && selectedKeys.size === filtered.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-border"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">内容</th>
                   <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">分类</th>
                   <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">年份</th>
@@ -637,7 +758,7 @@ export default function ContentPage() {
                   ))
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                       <Inbox className="w-12 h-12 mx-auto mb-3 opacity-40" />
                       <p className="text-sm">{debouncedKeyword ? `未找到匹配 "${debouncedKeyword}" 的内容` : '暂无内容'}</p>
                       {debouncedKeyword && (
@@ -646,8 +767,19 @@ export default function ContentPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((item) => (
-                    <tr key={`${item.type}-${item.id}`} className="border-b border-border/40 hover:bg-muted/40 even:bg-muted/10 transition-all duration-150">
+                  filtered.map((item) => {
+                    const itemKey = `${item.type}-${item.id}`;
+                    const isSelected = selectedKeys.has(itemKey);
+                    return (
+                    <tr key={itemKey} className={`border-b border-border/40 hover:bg-muted/40 even:bg-muted/10 transition-all duration-150 ${isSelected ? 'bg-primary/5' : ''}`}>
+                      <td className="text-center px-3 py-3.5">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectItem(itemKey)}
+                          className="rounded border-border"
+                        />
+                      </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <img
@@ -714,7 +846,8 @@ export default function ContentPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
