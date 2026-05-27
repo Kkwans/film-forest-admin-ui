@@ -120,20 +120,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((stat) => (
           <Link
             key={stat.label}
             href={stat.href}
-            className="group relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-border transition-all"
+            className="group relative overflow-hidden rounded-xl bg-card border border-border p-4 hover:border-foreground/15 hover:shadow-md transition-all"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className={`w-9 h-9 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+              <div className={`w-10 h-10 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
             </div>
-            <p className="text-xs text-muted-foreground mb-0.5">{stat.label}</p>
+            <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
             <p className="text-2xl font-bold text-foreground">{loading ? <Skeleton className="h-7 w-16" /> : stat.value.toLocaleString()}</p>
           </Link>
         ))}

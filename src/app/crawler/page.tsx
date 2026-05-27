@@ -48,7 +48,15 @@ function parseCronMode(expr: string): CronMode {
   const parts = expr.split(' ');
   if (parts.length !== 5) return 'daily';
   const [min, hour, dom, , dow] = parts;
+  // 分钟间隔: */N * * * *
   if (min.includes('*/') && hour === '*') return 'interval';
+  // 小时间隔: 0 */N * * *
+  if (min === '0' && hour.includes('*/')) return 'interval';
+  // 整点间隔: 0 * * * * (每小时), 0 */2 * * * (每2小时) 等 — 匹配 INTERVAL_OPTIONS 中的值
+  if (dom === '*' && dow === '*') {
+    const isIntervalOption = INTERVAL_OPTIONS.some(opt => opt.value === expr);
+    if (isIntervalOption) return 'interval';
+  }
   if (dow !== '*' && dom === '*') return 'weekly';
   if (dom !== '*' && dow === '*') return 'monthly';
   return 'daily';
@@ -338,6 +346,7 @@ export default function CrawlerPage() {
   const [genres, setGenres] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sources, setSources] = useState<SourceOption[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -467,6 +476,7 @@ export default function CrawlerPage() {
       }
     } catch { setSelectedGenres([]); }
     setEditingId(schedule.id);
+    setShowAdvanced(selectedGenres.length > 0);
     setShowForm(true);
   };
 
@@ -500,6 +510,7 @@ export default function CrawlerPage() {
     setForm(EMPTY_FORM);
     setEditingId(null);
     setSelectedGenres([]);
+    setShowAdvanced(false);
     setShowForm(true);
   };
 
@@ -609,6 +620,7 @@ export default function CrawlerPage() {
         }
       >
         <div className="space-y-4 md:space-y-5">
+          {/* 基础配置 */}
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">配置名称 <span className="text-destructive">*</span></label>
             <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="如：电影每日爬取" className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
@@ -625,10 +637,6 @@ export default function CrawlerPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">优先级</label>
-              <Select value={form.priority} onChange={v => setForm({...form, priority: v})} options={PRIORITY_OPTIONS} />
-            </div>
-            <div className="grid gap-2">
               <label className="text-sm font-medium text-foreground">启用状态</label>
               <div className="flex items-center gap-2 h-10">
                 <button type="button" onClick={() => setForm({...form, enabled: form.enabled ? 0 : 1})} className={`w-10 h-5 rounded-full relative transition-colors ${form.enabled ? 'bg-primary' : 'bg-muted'}`}>
@@ -638,52 +646,78 @@ export default function CrawlerPage() {
               </div>
             </div>
           </div>
-          {/* Genre 多选 */}
-          <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">类型筛选（留空爬全部）</label>
-            {genres.length > 0 ? (
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 rounded-lg border bg-background">
-                {genres.map(g => (
-                  <label key={g} className="flex items-center gap-1.5 text-sm text-foreground cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={selectedGenres.includes(g)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setSelectedGenres(prev => [...prev, g]);
-                        } else {
-                          setSelectedGenres(prev => prev.filter(x => x !== g));
-                        }
-                      }}
-                      className="rounded accent-primary"
-                    />
-                    {g}
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">切换内容类型后自动加载...</p>
-            )}
-            {selectedGenres.length > 0 && (
-              <p className="text-xs text-muted-foreground">已选 {selectedGenres.length} 项: {selectedGenres.join('，')}</p>
-            )}
-          </div>
           {/* Cron 可视化构建器 */}
           <div className="grid gap-2">
             <label className="text-sm font-medium text-foreground">定时规则</label>
             <CronBuilder value={form.cronExpression} onChange={v => setForm({...form, cronExpression: v})} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">每批数量</label>
-              <input type="number" min={1} max={1000} value={form.batchSize} onChange={e => setForm({...form, batchSize: Math.min(1000, Math.max(1, Number(e.target.value)))})} className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
-              <p className="text-xs text-muted-foreground">1-1000</p>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-foreground">请求间隔 (ms)</label>
-              <input type="number" min={200} step={100} value={form.rateLimitMs} onChange={e => setForm({...form, rateLimitMs: Math.max(200, Number(e.target.value))})} className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
-              <p className="text-xs text-muted-foreground">最小 200ms</p>
-            </div>
+          {/* 高级筛选（折叠） */}
+          <div className="rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors"
+            >
+              <span>高级筛选</span>
+              <span className="flex items-center gap-2">
+                {selectedGenres.length > 0 && (
+                  <span className="text-xs text-primary">已选 {selectedGenres.length} 项</span>
+                )}
+                {showAdvanced ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+              </span>
+            </button>
+            {showAdvanced && (
+              <div className="px-4 pb-4 space-y-4 border-t">
+                {/* 类型筛选（Genre） */}
+                <div className="grid gap-2 pt-3">
+                  <label className="text-sm font-medium text-foreground">类型筛选（留空爬全部）</label>
+                  {genres.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 rounded-lg border bg-background">
+                      {genres.map(g => (
+                        <label key={g} className="flex items-center gap-1.5 text-sm text-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={selectedGenres.includes(g)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedGenres(prev => [...prev, g]);
+                              } else {
+                                setSelectedGenres(prev => prev.filter(x => x !== g));
+                              }
+                            }}
+                            className="rounded accent-primary"
+                          />
+                          {g}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">切换内容类型后自动加载...</p>
+                  )}
+                  {selectedGenres.length > 0 && (
+                    <p className="text-xs text-muted-foreground">已选 {selectedGenres.length} 项: {selectedGenres.join('，')}</p>
+                  )}
+                </div>
+                {/* 优先级 */}
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">优先级</label>
+                  <Select value={form.priority} onChange={v => setForm({...form, priority: v})} options={PRIORITY_OPTIONS} />
+                </div>
+                {/* 每批数量 + 请求间隔 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium text-foreground">每批数量</label>
+                    <input type="number" min={1} max={1000} value={form.batchSize} onChange={e => setForm({...form, batchSize: Math.min(1000, Math.max(1, Number(e.target.value)))})} className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
+                    <p className="text-xs text-muted-foreground">1-1000</p>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium text-foreground">请求间隔 (ms)</label>
+                    <input type="number" min={200} step={100} value={form.rateLimitMs} onChange={e => setForm({...form, rateLimitMs: Math.max(200, Number(e.target.value))})} className="h-10 px-3 rounded-lg border bg-background text-foreground text-sm" />
+                    <p className="text-xs text-muted-foreground">最小 200ms</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Modal>

@@ -43,7 +43,7 @@ export function Modal({ open, onClose, title, description, children, width = 'md
   return (
     <div className="fixed inset-0 z-[9997] flex items-end md:items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
       {/* Modal */}
       <div className={cn(
         'relative bg-popover border-border shadow-2xl w-full flex flex-col',
@@ -57,9 +57,9 @@ export function Modal({ open, onClose, title, description, children, width = 'md
       )}>
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-border shrink-0">
+          <div className="flex items-start justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-border/60 shrink-0 bg-muted/20">
             <div className="min-w-0 flex-1">
-              {title && <h3 className="text-lg font-semibold text-white truncate">{title}</h3>}
+              {title && <h3 className="text-lg font-bold text-foreground truncate">{title}</h3>}
               {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 ml-4">

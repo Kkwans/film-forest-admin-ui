@@ -99,21 +99,22 @@ const INPUT_CLASS = 'h-9 px-3 rounded-lg border bg-background text-foreground te
 
 /** 通用表单输入框 */
 function FormInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={INPUT_CLASS + (props.className ? ` ${props.className}` : '')} />;
+  return <input {...props} className={INPUT_CLASS + ' placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all' + (props.className ? ` ${props.className}` : '')} />;
 }
 
 /** 通用表单文本域 */
 function FormTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={'px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none' + (props.className ? ` ${props.className}` : '')} />;
+  return <textarea {...props} className={'px-3 py-2 rounded-lg border bg-background text-foreground text-sm resize-none placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all' + (props.className ? ` ${props.className}` : '')} />;
 }
 
 // ========== Field 布局组件 ==========
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-1.5">
       <label className="text-sm font-medium text-foreground">{label}</label>
       {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -126,80 +127,119 @@ export function ContentFormFields({ form, onChange, showStatus = false }: {
   showStatus?: boolean;
 }) {
   return (
-    <div className="space-y-4 py-2">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="内容类型">
-          <Select value={form.type} onChange={v => onChange({ ...form, type: v as ContentType })} options={TYPE_OPTIONS} />
+    <div className="space-y-6 py-2">
+      {/* 基本信息 */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <span className="text-base">📋</span>
+          <h4 className="text-sm font-semibold text-foreground">基本信息</h4>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="内容类型">
+            <Select value={form.type} onChange={v => onChange({ ...form, type: v as ContentType })} options={TYPE_OPTIONS} />
+          </Field>
+          <Field label="年份">
+            <FormInput value={form.year} onChange={e => onChange({ ...form, year: e.target.value })} placeholder="2026" />
+          </Field>
+        </div>
+        <Field label="标题">
+          <FormInput value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" />
         </Field>
-        <Field label="年份">
-          <FormInput value={form.year} onChange={e => onChange({ ...form, year: e.target.value })} placeholder="2026" />
-        </Field>
-      </div>
-      <Field label="标题">
-        <FormInput value={form.title} onChange={e => onChange({ ...form, title: e.target.value })} placeholder="输入内容标题" />
-      </Field>
-      <Field label="海报 URL">
-        <FormInput value={form.posterUrl} onChange={e => onChange({ ...form, posterUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
-      </Field>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="豆瓣评分">
-          <FormInput value={form.scoreDouban} onChange={e => onChange({ ...form, scoreDouban: e.target.value })} placeholder="8.5" />
-        </Field>
-        <Field label="类型（逗号分隔）">
-          <FormInput value={form.genre} onChange={e => onChange({ ...form, genre: e.target.value })} placeholder="剧情，喜剧" />
-        </Field>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="地区（逗号分隔）">
-          <FormInput value={form.region} onChange={e => onChange({ ...form, region: e.target.value })} placeholder="中国大陆" />
-        </Field>
-        <Field label="导演（逗号分隔）">
-          <FormInput value={form.director} onChange={e => onChange({ ...form, director: e.target.value })} placeholder="张三" />
+        <Field label="海报 URL">
+          <FormInput value={form.posterUrl} onChange={e => onChange({ ...form, posterUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
         </Field>
       </div>
-      <Field label="演员（逗号分隔）">
-        <FormInput value={form.actor} onChange={e => onChange({ ...form, actor: e.target.value })} placeholder="演员A，演员B" />
-      </Field>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="语言（逗号分隔）">
-          <FormInput value={form.language} onChange={e => onChange({ ...form, language: e.target.value })} placeholder="英语，汉语" />
-        </Field>
-        <Field label="编剧（逗号分隔）">
-          <FormInput value={form.writer} onChange={e => onChange({ ...form, writer: e.target.value })} placeholder="编剧A" />
+
+      {/* 评分信息 */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <span className="text-base">⭐</span>
+          <h4 className="text-sm font-semibold text-foreground">评分信息</h4>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="豆瓣评分">
+            <FormInput value={form.scoreDouban} onChange={e => onChange({ ...form, scoreDouban: e.target.value })} placeholder="8.5" />
+          </Field>
+          <Field label="IMDb 评分">
+            <FormInput value={form.scoreImdb} onChange={e => onChange({ ...form, scoreImdb: e.target.value })} placeholder="8.3" />
+          </Field>
+          <Field label="RT 评分（%）">
+            <FormInput value={form.scoreRt} onChange={e => onChange({ ...form, scoreRt: e.target.value })} placeholder="95" />
+          </Field>
+        </div>
+      </div>
+
+      {/* 分类信息 */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <span className="text-base">🏷️</span>
+          <h4 className="text-sm font-semibold text-foreground">分类信息</h4>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="类型（逗号分隔）">
+            <FormInput value={form.genre} onChange={e => onChange({ ...form, genre: e.target.value })} placeholder="剧情，喜剧" />
+          </Field>
+          <Field label="地区（逗号分隔）">
+            <FormInput value={form.region} onChange={e => onChange({ ...form, region: e.target.value })} placeholder="中国大陆" />
+          </Field>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="语言（逗号分隔）">
+            <FormInput value={form.language} onChange={e => onChange({ ...form, language: e.target.value })} placeholder="英语，汉语" />
+          </Field>
+          <Field label="又名（逗号分隔）">
+            <FormInput value={form.alias} onChange={e => onChange({ ...form, alias: e.target.value })} placeholder="极限返航，末日圣母号" />
+          </Field>
+        </div>
+      </div>
+
+      {/* 演职信息 */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <span className="text-base">🎬</span>
+          <h4 className="text-sm font-semibold text-foreground">演职信息</h4>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="导演（逗号分隔）">
+            <FormInput value={form.director} onChange={e => onChange({ ...form, director: e.target.value })} placeholder="张三" />
+          </Field>
+          <Field label="编剧（逗号分隔）">
+            <FormInput value={form.writer} onChange={e => onChange({ ...form, writer: e.target.value })} placeholder="编剧A" />
+          </Field>
+        </div>
+        <Field label="演员（逗号分隔）">
+          <FormInput value={form.actor} onChange={e => onChange({ ...form, actor: e.target.value })} placeholder="演员A，演员B" />
         </Field>
       </div>
-      {showStatus && (
-        <Field label="状态">
-          <div className="flex items-center gap-2 h-9">
-            <button type="button" onClick={() => onChange({ ...form, status: form.status === 1 ? 0 : 1 })} className={`w-10 h-5 rounded-full relative transition-colors ${form.status === 1 ? 'bg-primary' : 'bg-muted'}`}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
-            </button>
-            <span className="text-sm text-muted-foreground">{form.status === 1 ? '已上线' : '已下线'}</span>
-          </div>
-        </Field>
-      )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="时长（分钟）">
-          <FormInput value={form.duration} onChange={e => onChange({ ...form, duration: e.target.value })} placeholder="120" />
-        </Field>
-        <Field label="上映日期">
-          <FormInput value={form.releaseDate} onChange={e => onChange({ ...form, releaseDate: e.target.value })} placeholder="2026-03-20" />
+
+      {/* 其他信息 */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <span className="text-base">📝</span>
+          <h4 className="text-sm font-semibold text-foreground">其他信息</h4>
+        </div>
+        {showStatus && (
+          <Field label="状态">
+            <div className="flex items-center gap-2 h-9">
+              <button type="button" onClick={() => onChange({ ...form, status: form.status === 1 ? 0 : 1 })} className={`w-10 h-5 rounded-full relative transition-colors ${form.status === 1 ? 'bg-primary' : 'bg-muted'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.status === 1 ? 'right-0.5' : 'left-0.5'}`} />
+              </button>
+              <span className="text-sm text-muted-foreground">{form.status === 1 ? '已上线' : '已下线'}</span>
+            </div>
+          </Field>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="时长（分钟）">
+            <FormInput value={form.duration} onChange={e => onChange({ ...form, duration: e.target.value })} placeholder="120" />
+          </Field>
+          <Field label="上映日期">
+            <FormInput value={form.releaseDate} onChange={e => onChange({ ...form, releaseDate: e.target.value })} placeholder="2026-03-20" />
+          </Field>
+        </div>
+        <Field label="剧情简介">
+          <FormTextarea value={form.storyline} onChange={e => onChange({ ...form, storyline: e.target.value })} rows={3} />
         </Field>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="IMDb 评分">
-          <FormInput value={form.scoreImdb} onChange={e => onChange({ ...form, scoreImdb: e.target.value })} placeholder="8.3" />
-        </Field>
-        <Field label="RT 评分（%）">
-          <FormInput value={form.scoreRt} onChange={e => onChange({ ...form, scoreRt: e.target.value })} placeholder="95" />
-        </Field>
-      </div>
-      <Field label="又名（逗号分隔）">
-        <FormInput value={form.alias} onChange={e => onChange({ ...form, alias: e.target.value })} placeholder="极限返航，末日圣母号" />
-      </Field>
-      <Field label="剧情简介">
-        <FormTextarea value={form.storyline} onChange={e => onChange({ ...form, storyline: e.target.value })} rows={3} />
-      </Field>
     </div>
   );
 }

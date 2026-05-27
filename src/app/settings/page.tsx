@@ -143,7 +143,7 @@ export default function SettingsPage() {
             <input
               value={settings.site_name}
               onChange={e => update('site_name', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               placeholder="影视森林"
             />
             <p className="text-xs text-muted-foreground">显示在浏览器标签和页面标题中</p>
@@ -153,7 +153,7 @@ export default function SettingsPage() {
             <input
               value={settings.site_desc}
               onChange={e => update('site_desc', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               placeholder="影视资源聚合平台"
             />
             <p className="text-xs text-muted-foreground">用于 SEO 和社交分享</p>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
             <input
               value={settings.copyright}
               onChange={e => update('copyright', e.target.value)}
-              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+              className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               placeholder="© 2026 影视森林"
             />
             <p className="text-xs text-muted-foreground">显示在页面底部</p>

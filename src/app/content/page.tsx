@@ -324,18 +324,21 @@ export default function ContentPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: '电影', key: 'movie', color: 'text-muted-foreground' },
-          { label: '剧集', key: 'drama', color: 'text-muted-foreground' },
-          { label: '综艺', key: 'variety', color: 'text-muted-foreground' },
-          { label: '动漫', key: 'anime', color: 'text-destructive' },
-          { label: '短剧', key: 'short_drama', color: 'text-primary' },
+          { label: '电影', key: 'movie', icon: '🎬', color: 'text-primary' },
+          { label: '剧集', key: 'drama', icon: '📺', color: 'text-primary' },
+          { label: '综艺', key: 'variety', icon: '🎤', color: 'text-primary' },
+          { label: '动漫', key: 'anime', icon: '🎯', color: 'text-primary' },
+          { label: '短剧', key: 'short_drama', icon: '⚡', color: 'text-primary' },
         ].map((stat) => (
-          <Card key={stat.key} className="bg-card border-border">
-            <CardContent className="p-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{stat.label}</span>
-              <span className={`text-xl font-bold ${stat.color}`}>{typeCountMap[stat.key] ?? '-'}</span>
+          <Card key={stat.key} className="bg-card border-border hover:border-foreground/15 transition-colors group">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg">{stat.icon}</span>
+                <span className={`text-2xl font-bold ${stat.color}`}>{typeCountMap[stat.key] ?? '-'}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">{stat.label}</span>
             </CardContent>
           </Card>
         ))}
@@ -385,13 +388,13 @@ export default function ContentPage() {
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">内容</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">分类</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">年份</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">评分</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">上线状态</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">操作</th>
+                <tr className="border-b-2 border-border bg-muted/40">
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">内容</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">分类</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">年份</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">评分</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">状态</th>
+                  <th className="text-left px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -415,59 +418,59 @@ export default function ContentPage() {
                   </tr>
                 ) : (
                   filtered.map((item) => (
-                    <tr key={`${item.type}-${item.id}`} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="px-4 py-3">
+                    <tr key={`${item.type}-${item.id}`} className="border-b border-border/40 hover:bg-muted/40 even:bg-muted/10 transition-all duration-150">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <img
                             src={item.posterUrl || `https://picsum.photos/seed/${item.type}${item.id}/100/150`}
                             alt={item.title}
-                            className="w-10 h-14 object-cover rounded"
+                            className="w-11 h-[60px] object-cover rounded-md ring-1 ring-black/5 shadow-sm"
                             loading="lazy"
                             onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${item.type}${item.id}/100/150`; }}
                           />
-                          <div>
-                            <p className="text-sm font-medium text-foreground max-w-48 truncate">{item.title}</p>
-                            <p className="text-xs text-muted-foreground">{item.createdAt?.slice(0, 10)}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground max-w-48 truncate group-hover:text-primary transition-colors">{item.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.createdAt?.slice(0, 10)}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm font-medium text-foreground">
+                      <td className="px-4 py-3.5">
+                        <span className="text-sm text-foreground">
                           {TYPE_ICON_EMOJI[item.type] || ''} {TYPE_LABELS[item.type] || item.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <td className="px-4 py-3.5 text-sm text-muted-foreground">
                         {item.year || '-'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         {item.scoreDouban ? (
-                          <Badge className="bg-primary/20 text-primary border-primary/30">
-                            {item.scoreDouban}
-                          </Badge>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            ⭐ {item.scoreDouban}
+                          </span>
                         ) : (
-                          <span className="text-muted-foreground/50">-</span>
+                          <span className="text-muted-foreground/40 text-xs">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-primary/15 text-primary hover:bg-primary/25' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/20' : 'bg-muted text-muted-foreground hover:bg-muted/80 ring-1 ring-border'}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
                           {item.status === 1 ? '已上线' : '已下线'}
                         </button>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setDetailItem(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="详情">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setDetailItem(item)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="详情">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleEditClick(item)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="编辑">
+                          <button onClick={() => handleEditClick(item)} className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="编辑">
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(item.id, item.type)}
-                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -499,41 +502,41 @@ export default function ContentPage() {
               </div>
             ) : (
               filtered.map((item) => (
-                <div key={`${item.type}-${item.id}`} className="p-4 space-y-3">
+                <div key={`${item.type}-${item.id}`} className="p-4 hover:bg-muted/30 transition-all duration-150 active:bg-muted/50">
                   <div className="flex items-start gap-3">
                     <img
                       src={item.posterUrl || `https://picsum.photos/seed/${item.type}${item.id}/100/150`}
                       alt={item.title}
-                      className="w-12 h-16 object-cover rounded shrink-0"
+                      className="w-12 h-[66px] object-cover rounded-md ring-1 ring-black/5 shadow-sm shrink-0"
                       loading="lazy"
                       onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${item.type}${item.id}/100/150`; }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">{TYPE_ICON_EMOJI[item.type]} {TYPE_LABELS[item.type]}</span>
+                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">{TYPE_ICON_EMOJI[item.type]} {TYPE_LABELS[item.type]}</span>
                         {item.year && <span className="text-xs text-muted-foreground">{item.year}</span>}
                         {item.scoreDouban && (
-                          <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">{item.scoreDouban}</Badge>
+                          <span className="inline-flex items-center text-xs font-bold text-amber-600 dark:text-amber-400">⭐ {item.scoreDouban}</span>
                         )}
                         <button
                           onClick={() => handleToggleStatus(item)}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${item.status === 1 ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-all ${item.status === 1 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 1 ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
                           {item.status === 1 ? '已上线' : '已下线'}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{item.createdAt?.slice(0, 10)}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5">{item.createdAt?.slice(0, 10)}</p>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => setDetailItem(item)} className="p-2 rounded hover:bg-muted text-muted-foreground" title="详情">
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button onClick={() => setDetailItem(item)} className="p-2 rounded-lg hover:bg-muted text-muted-foreground" title="详情">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleEditClick(item)} className="p-2 rounded hover:bg-muted text-muted-foreground" title="编辑">
+                      <button onClick={() => handleEditClick(item)} className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary" title="编辑">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(item.id, item.type)} className="p-2 rounded hover:bg-destructive/20 text-destructive" title="删除">
+                      <button onClick={() => handleDelete(item.id, item.type)} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive" title="删除">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

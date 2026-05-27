@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Film, Upload, BarChart3, Settings, Database, Tag, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Film, Upload, BarChart3, Settings, Database, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
@@ -11,7 +11,6 @@ const NAV_ITEMS = [
   { href: '/crawler', label: '爬虫管理', icon: Upload },
   { href: '/stats', label: '数据统计', icon: BarChart3 },
   { href: '/resources', label: '资源管理', icon: Database },
-  { href: '/tags', label: '标签管理', icon: Tag },
   { href: '/settings', label: '系统设置', icon: Settings },
 ];
 
@@ -76,7 +75,7 @@ export default function AdminSidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -84,14 +83,18 @@ export default function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative group ${
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                {item.label}
+                {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sidebar-primary animate-in slide-in-from-left-1 duration-200" />}
+                <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-sidebar-primary' : 'group-hover:text-sidebar-foreground/90'}`} />
+                <span className="truncate">{item.label}</span>
+                {isActive && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary/60" />
+                )}
               </Link>
             );
           })}
@@ -99,7 +102,10 @@ export default function AdminSidebar() {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-sidebar-border">
-          <p className="text-xs text-sidebar-foreground/40">v0.1.0</p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-xs text-sidebar-foreground/40">运行中 · v0.1.0</p>
+          </div>
         </div>
       </aside>
     </>
