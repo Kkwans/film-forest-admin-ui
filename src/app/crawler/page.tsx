@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { crawlerApi, contentApi, type CrawlerSchedule, type CrawlerTaskLog } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
+import { extractErrorMessage } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
-import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2, RotateCcw, Filter, CheckCircle, XCircle, AlertTriangle, StopCircle } from 'lucide-react';
+import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2, RotateCcw, Filter, CheckCircle, XCircle, AlertTriangle, StopCircle, Search, X } from 'lucide-react';
 
 // ========== 类型定义 ==========
 // 注意：CrawlerTaskLog 从 @/lib/api 导入
@@ -339,7 +340,61 @@ export default function CrawlerPage() {
   const [genres, setGenres] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sources, setSources] = useState<SourceOption[]>([]);
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+  const [logPage, setLogPage] = useState(1);
+  const LOG_PAGE_SIZE = 20;
+  const paginatedLogs = logs.slice(0, logPage * LOG_PAGE_SIZE);
+  const hasMoreLogs = paginatedLogs.length < logs.length;
+  const searchRef = useRef<HTMLInputElement>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Keyboard shortcut: Ctrl+F to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Name keyword search state
+  const [nameKeyword, setNameKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(nameKeyword), 300);
+    return () => clearTimeout(timer);
+  }, [nameKeyword]);
+
+  // Filtered schedules based on name keyword
+  const filteredSchedules = debouncedKeyword
+    ? schedules.filter(s => s.name.toLowerCase().includes(debouncedKeyword.toLowerCase()))
+    : schedules;
+
+  // sort state
+  const [sortKey, setSortKey] = useState<'name' | 'contentType' | 'cron' | 'lastRun'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+    else if (sortKey === 'contentType') cmp = a.contentType.localeCompare(b.contentType);
+    else if (sortKey === 'cron') cmp = a.cronExpression.localeCompare(b.cronExpression);
+    else if (sortKey === 'lastRun') cmp = (a.lastRunTime || '').localeCompare(b.lastRunTime || '');
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const SortIcon = ({ col }: { col: typeof sortKey }) => {
+    if (sortKey !== col) return <span className="text-muted-foreground/30 ml-1">⇅</span>;
+    return <span className="text-primary ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -352,8 +407,8 @@ export default function CrawlerPage() {
         running: statusData?.running ?? data.filter((s: CrawlerScheduleItem) => s.status === 'running').length,
         idle: statusData?.idle ?? data.filter((s: CrawlerScheduleItem) => s.status !== 'running').length,
       });
-    } catch (e) {
-      console.error('fetch schedules error', e);
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '获取爬虫配置失败'));
     } finally {
       setLoading(false);
     }
@@ -367,8 +422,8 @@ export default function CrawlerPage() {
       const res = await crawlerApi.listLogs(params) as AxiosResponse<LogResult>;
       setLogs(res.data?.data || []);
       setLogsLoaded(true);
-    } catch (e) {
-      console.error('fetch logs error', e);
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '获取日志列表失败'));
     } finally {
       setLogsLoading(false);
     }
@@ -378,8 +433,8 @@ export default function CrawlerPage() {
     try {
       const res = await crawlerApi.getLogStats() as AxiosResponse<{ code: number; data: { total: number; byStatus: Record<string, number>; recentFailed: CrawlerTaskLog[] } }>;
       if (res.data?.code === 200) setLogStats(res.data.data);
-    } catch (e) {
-      console.error('fetch log stats error', e);
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '获取日志统计失败'));
     }
   }, []);
 
@@ -405,7 +460,7 @@ export default function CrawlerPage() {
     crawlerApi.listSources().then((res: AxiosResponse<SourcesResult>) => {
       const data = res.data;
       if (data?.code === 200) setSources(data.data || []);
-    }).catch(e => console.error('加载资源来源失败', e));
+    }).catch((e: unknown) => { toast.error(extractErrorMessage(e, '加载资源来源失败')); });
   }, []);
 
   // 当 contentType 变化且表单打开时加载 genre 列表
@@ -414,28 +469,28 @@ export default function CrawlerPage() {
       contentApi.getGenres(form.contentType).then((res: AxiosResponse<GenresResult>) => {
         const data = res.data;
         if (data?.code === 200) setGenres(data.data || []);
-      }).catch(e => { console.error('加载类型列表失败', e); setGenres([]); });
+      }).catch((e: unknown) => { toast.error(extractErrorMessage(e, '加载类型列表失败')); setGenres([]); });
     }
   }, [form.contentType, showForm]);
 
   const handleStart = async (id: number) => {
     setActionId(id);
-    try { await crawlerApi.start(id); toast.success('爬虫已启动'); await fetchSchedules(); } catch (e) { toast.error('启动失败'); console.error(e); } finally { setActionId(null); }
+    try { await crawlerApi.start(id); toast.success('爬虫已启动'); await fetchSchedules(); } catch (e: unknown) { toast.error(extractErrorMessage(e, '启动失败')); } finally { setActionId(null); }
   };
 
   const handleStop = async (id: number) => {
     setActionId(id);
-    try { await crawlerApi.stop(id); toast.success('爬虫已停止'); await fetchSchedules(); } catch (e) { toast.error('停止失败'); console.error(e); } finally { setActionId(null); }
+    try { await crawlerApi.stop(id); toast.success('爬虫已停止'); await fetchSchedules(); } catch (e: unknown) { toast.error(extractErrorMessage(e, '停止失败')); } finally { setActionId(null); }
   };
 
   const handleToggle = async (schedule: CrawlerScheduleItem) => {
-    try { await crawlerApi.toggleEnabled(schedule.id, schedule.enabled !== 1); toast.success(schedule.enabled ? '已禁用' : '已启用'); await fetchSchedules(); } catch (e) { toast.error('操作失败'); console.error(e); }
+    try { await crawlerApi.toggleEnabled(schedule.id, schedule.enabled !== 1); toast.success(schedule.enabled ? '已禁用' : '已启用'); await fetchSchedules(); } catch (e: unknown) { toast.error(extractErrorMessage(e, '操作失败')); }
   };
 
   const handleDelete = async (id: number) => {
     const ok = await dialog.confirm({ title: '删除配置', content: '确定删除此爬虫配置？删除后不可恢复。', confirmText: '删除', cancelText: '取消', variant: 'danger' });
     if (!ok) return;
-    try { await crawlerApi.deleteSchedule(id); toast.success('已删除'); await fetchSchedules(); } catch (e) { toast.error('删除失败'); console.error(e); }
+    try { await crawlerApi.deleteSchedule(id); toast.success('已删除'); await fetchSchedules(); } catch (e: unknown) { toast.error(extractErrorMessage(e, '删除失败')); }
   };
 
   const parseGenreFilterForDisplay = (gf: string | null): string => {
@@ -496,7 +551,7 @@ export default function CrawlerPage() {
       setForm(EMPTY_FORM);
       setSelectedGenres([]);
       await fetchSchedules();
-    } catch (e) { toast.error('保存失败'); console.error(e); } finally { setSaving(false); }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '保存失败')); } finally { setSaving(false); }
   };
 
   const handleCreateNew = () => {
@@ -711,11 +766,39 @@ export default function CrawlerPage() {
         {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead className="bg-muted/50 sticky top-0 z-10 shadow-sm">
               <tr className="border-b">
-                <th className="text-left p-3 font-medium text-muted-foreground">名称</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">类型</th>
-                <th className="text-left p-3 font-medium text-muted-foreground">定时</th>
+                <th className="text-left p-3 font-medium text-muted-foreground">
+                  <button onClick={() => handleSort('name')} className="flex items-center hover:text-foreground transition-colors">
+                    名称<SortIcon col="name" />
+                  </button>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      ref={searchRef}
+                      value={nameKeyword}
+                      onChange={e => setNameKeyword(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && setDebouncedKeyword(nameKeyword)}
+                      placeholder="Ctrl+F 搜索..."
+                      className="h-7 pl-8 pr-7 rounded border bg-background text-foreground text-xs w-full max-w-[160px] focus:ring-1 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                    />
+                    {nameKeyword && (
+                      <button onClick={() => { setNameKeyword(''); setDebouncedKeyword(''); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </th>
+                <th className="text-left p-3 font-medium text-muted-foreground">
+                  <button onClick={() => handleSort('contentType')} className="flex items-center hover:text-foreground transition-colors">
+                    类型<SortIcon col="contentType" />
+                  </button>
+                </th>
+                <th className="text-left p-3 font-medium text-muted-foreground">
+                  <button onClick={() => handleSort('cron')} className="flex items-center hover:text-foreground transition-colors">
+                    定时<SortIcon col="cron" />
+                  </button>
+                </th>
                 <th className="text-left p-3 font-medium text-muted-foreground">批量</th>
                 <th className="text-left p-3 font-medium text-muted-foreground">间隔</th>
                 <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">优先级</th>
@@ -727,9 +810,11 @@ export default function CrawlerPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={9} className="p-8 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-1" /><span className="text-sm">加载中...</span></td></tr>
-              ) : schedules.length === 0 ? (
+              ) : sortedSchedules.length === 0 && debouncedKeyword ? (
+                <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">未找到匹配 "{debouncedKeyword}" 的配置</td></tr>
+              ) : sortedSchedules.length === 0 ? (
                 <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">暂无配置，点击"新建配置"开始</td></tr>
-              ) : schedules.map((s) => {
+              ) : sortedSchedules.map((s) => {
                 const isRunning = s.status === 'running';
                 const isLoading = actionId === s.id;
                 return (
@@ -950,7 +1035,7 @@ export default function CrawlerPage() {
                 {/* Desktop table */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
+                    <thead className="bg-muted/30 sticky top-0 z-10 shadow-sm">
                       <tr className="border-b">
                         <th className="text-left p-3 font-medium text-muted-foreground">任务</th>
                         <th className="text-left p-3 font-medium text-muted-foreground">类型</th>
@@ -964,9 +1049,19 @@ export default function CrawlerPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {logs.map((log) => (
+                      {paginatedLogs.map((log) => (
                         <tr key={log.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="p-3 text-foreground font-medium">{log.scheduleName || '-'}</td>
+                          <td className="p-3 text-foreground font-medium">
+                            <button onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)} className="text-left hover:text-primary transition-colors">
+                              <span className="flex items-center gap-1">
+                                {expandedLogId === log.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                {log.scheduleName || '-'}
+                              </span>
+                            </button>
+                            {expandedLogId === log.id && log.errorMessage && (
+                              <p className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 mt-1">{log.errorMessage}</p>
+                            )}
+                          </td>
                           <td className="p-3 text-muted-foreground text-xs">{TYPE_MAP[log.contentType] || log.contentType}</td>
                           <td className="p-3">{renderStatusBadge(log.status)}</td>
                           <td className="p-3 text-muted-foreground">{log.itemsCrawled || 0}</td>
@@ -991,9 +1086,17 @@ export default function CrawlerPage() {
                     </tbody>
                   </table>
                 </div>
+                {/* Load more */}
+                {hasMoreLogs && (
+                  <div className="p-4 text-center">
+                    <button onClick={() => setLogPage(p => p + 1)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">
+                      加载更多 ({logs.length - paginatedLogs.length} 条剩余)
+                    </button>
+                  </div>
+                )}
                 {/* Mobile cards */}
                 <div className="md:hidden divide-y divide-border">
-                  {logs.map((log) => (
+                  {paginatedLogs.slice(0, 10).map((log) => (
                     <div key={log.id} className="p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground truncate">{log.scheduleName || '-'}</p>
@@ -1024,6 +1127,14 @@ export default function CrawlerPage() {
                     </div>
                   ))}
                 </div>
+                {/* Mobile load more */}
+                {hasMoreLogs && paginatedLogs.length <= 10 && (
+                  <div className="p-4 text-center">
+                    <button onClick={() => setLogPage(p => p + 1)} className="px-4 py-2 text-sm rounded-lg border bg-background text-foreground hover:bg-muted transition-colors">
+                      加载更多 ({logs.length - paginatedLogs.length} 条剩余)
+                    </button>
+                  </div>
+                )}
               </>
             )}
             {logs.some(l => l.errorMessage) && (

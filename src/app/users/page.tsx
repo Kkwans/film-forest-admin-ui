@@ -7,6 +7,7 @@ import { Users, UserPlus, Search, Pencil, Trash2, Key, Loader2, Shield, ShieldOf
 import { userApi, type UserItem } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
+import { extractErrorMessage } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
 import Pagination from '@/components/Pagination';
 
@@ -85,7 +86,6 @@ export default function UsersPage() {
         setTotal(data.total);
       }
     } catch (e) {
-      console.error('加载用户列表失败', e);
       toast.error('加载用户列表失败');
     } finally {
       setLoading(false);
@@ -137,9 +137,8 @@ export default function UsersPage() {
       }
       setShowModal(false);
       loadUsers();
-    } catch (e: any) {
-      const msg = e.response?.data?.message || '操作失败';
-      toast.error(msg);
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '操作失败'));
     } finally {
       setSaving(false);
     }
@@ -158,8 +157,8 @@ export default function UsersPage() {
       await userApi.delete(user.id);
       toast.success('用户已删除');
       loadUsers();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '删除失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '删除失败'));
     }
   };
 
@@ -168,8 +167,8 @@ export default function UsersPage() {
       await userApi.toggleStatus(user.id);
       toast.success(user.status === 1 ? '已禁用' : '已启用');
       loadUsers();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '操作失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '操作失败'));
     }
   };
 
@@ -187,8 +186,8 @@ export default function UsersPage() {
       await userApi.resetPassword(resetUserId, newPassword);
       toast.success('密码已重置');
       setShowResetModal(false);
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '重置失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '重置失败'));
     }
   };
 
@@ -254,7 +253,7 @@ export default function UsersPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                   <tr className="border-b border-border">
                     <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">用户名</th>
                     <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">昵称</th>

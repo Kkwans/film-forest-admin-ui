@@ -251,6 +251,10 @@ export const contentApi = {
   updateShortDrama: (id: number, data: ContentSubmitData) => adminClient.put(`/api/content/short-dramas/${id}`, data),
   deleteShortDrama: (id: number) => adminClient.delete(`/api/content/short-dramas/${id}`),
 
+  // 状态切换（通用，只更新 status 字段）
+  toggleStatus: (type: string, id: number, status: number) =>
+    adminClient.patch(`/api/content/${type}/${id}/status?status=${status}`),
+
   // 合并列表
   listAll: (params: { type?: string; page?: number; size?: number }) =>
     adminClient.get('/api/content/all', { params }),

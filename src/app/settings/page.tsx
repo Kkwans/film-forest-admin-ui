@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Database, Bell, Shield, Save, Loader2, CheckCircle2, Globe, Palette, Key, Server, HardDrive, Mail, AlertTriangle } from 'lucide-react';
 import { settingsApi, userApi } from '@/lib/api';
+import { extractErrorMessage } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
 
 interface SettingsData {
@@ -47,12 +48,12 @@ export default function SettingsPage() {
           notify_on_error: d.notify_on_error ?? prev.notify_on_error,
         }));
       }
-    }).catch(e => console.error('加载设置失败', e)).finally(() => setLoading(false));
+    }).catch((e: unknown) => toast.error(extractErrorMessage(e, '加载设置失败'))).finally(() => setLoading(false));
     settingsApi.getDbInfo().then(res => {
       if (res.data?.code === 200 && res.data.data) {
         setDbInfo(res.data.data);
       }
-    }).catch(e => console.error('加载数据库信息失败', e));
+    }).catch((e: unknown) => toast.error(extractErrorMessage(e, '加载数据库信息失败')));
   }, []);
 
   const update = (key: keyof SettingsData, value: string) => {
@@ -74,7 +75,7 @@ export default function SettingsPage() {
       toast.success('设置已保存');
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      console.error('保存失败', e);
+      toast.error(extractErrorMessage(e, '保存失败'));
       toast.error('保存失败，请检查后端服务');
     } finally {
       setSaving(false);
@@ -82,6 +83,21 @@ export default function SettingsPage() {
   };
 
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // 密码强度计算
+  const getPasswordStrength = (pw: string): { level: number; label: string; color: string } => {
+    if (!pw) return { level: 0, label: '', color: '' };
+    let score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^a-zA-Z0-9]/.test(pw)) score++;
+    if (score <= 1) return { level: 1, label: '弱', color: 'bg-destructive' };
+    if (score <= 3) return { level: 2, label: '中', color: 'bg-amber-500' };
+    return { level: 3, label: '强', color: 'bg-emerald-500' };
+  };
+  const strength = getPasswordStrength(password);
 
   const handlePasswordChange = async () => {
     if (!password.trim()) {
@@ -109,8 +125,8 @@ export default function SettingsPage() {
       toast.success('密码已更新');
       setPassword('');
       setConfirmPassword('');
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '密码更新失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '密码更新失败'));
     } finally {
       setChangingPassword(false);
     }
@@ -326,6 +342,18 @@ export default function SettingsPage() {
                   placeholder="输入新密码"
                   className="h-10 px-4 rounded-lg border bg-background text-foreground text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 />
+                {password && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex gap-1">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.level ? strength.color : 'bg-muted'}`} />
+                      ))}
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      strength.level === 1 ? 'text-destructive' : strength.level === 2 ? 'text-amber-500' : 'text-emerald-500'
+                    }`}>{strength.label}</span>
+                  </div>
+                )}
               </div>
               <div className="grid gap-2">
                 <label className="text-sm text-muted-foreground">确认密码</label>

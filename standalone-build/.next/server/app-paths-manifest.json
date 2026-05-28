@@ -1,0 +1,15 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/content/page": "app/content/page.js",
+  "/crawler/page": "app/crawler/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/logs/page": "app/logs/page.js",
+  "/page": "app/page.js",
+  "/resources/page": "app/resources/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/stats/page": "app/stats/page.js",
+  "/tags/page": "app/tags/page.js",
+  "/users/page": "app/users/page.js"
+}

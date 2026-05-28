@@ -13,8 +13,8 @@ export default function Loading() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="rounded-xl bg-card border border-border p-4">
             <div className="flex items-center justify-between mb-3">
               <Skeleton className="w-9 h-9 rounded-lg" />

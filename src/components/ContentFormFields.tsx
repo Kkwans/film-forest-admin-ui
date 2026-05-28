@@ -157,6 +157,17 @@ export function ContentFormFields({ form, onChange, showStatus = false, errors =
         </Field>
         <Field label="海报 URL">
           <FormInput value={form.posterUrl} onChange={e => onChange({ ...form, posterUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
+          {form.posterUrl && (
+            <div className="mt-2">
+              <img
+                src={form.posterUrl}
+                alt="海报预览"
+                className="w-20 h-28 object-cover rounded-lg ring-1 ring-border shadow-sm"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                onLoad={e => { (e.target as HTMLImageElement).style.display = ''; }}
+              />
+            </div>
+          )}
         </Field>
       </div>
 

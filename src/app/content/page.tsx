@@ -14,6 +14,7 @@ import type { AxiosResponse } from 'axios';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import Pagination from '@/components/Pagination';
+import { extractErrorMessage } from '@/lib/utils';
 import {
   ContentFormFields,
   EditForm,
@@ -41,14 +42,7 @@ function dispatchByType<T>(
   return handlers[type]();
 }
 
-/** 从 API 错误中提取可读的错误消息 */
-function extractErrorMessage(e: unknown, fallback: string): string {
-  if (typeof e === 'object' && e !== null) {
-    const err = e as { response?: { data?: { message?: string; msg?: string } }; message?: string };
-    return err.response?.data?.message || err.response?.data?.msg || err.message || fallback;
-  }
-  return fallback;
-}
+
 
 // ========== 类型定义 ==========
 interface ContentRecord {
@@ -152,6 +146,9 @@ export default function ContentPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingNew, setSavingNew] = useState(false);
+  // Refs for keyboard shortcuts to avoid stale closure
+  const handleSaveEditRef = useRef<() => Promise<void>>(async () => {});
+  const handleSaveNewRef = useRef<() => Promise<void>>(async () => {});
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -246,7 +243,6 @@ export default function ContentPage() {
         setTotal(totalCount);
       }
     } catch (e: unknown) {
-      console.error('fetch error', e);
       toast.error(extractErrorMessage(e, '数据加载失败'));
     } finally {
       setLoading(false);
@@ -270,7 +266,7 @@ export default function ContentPage() {
   useEffect(() => {
     contentApi.getStats().then(res => {
       if (res.data?.code === 200) setStats(res.data.data);
-    }).catch(e => console.error('加载统计数据失败', e));
+    }).catch((e: unknown) => toast.error(extractErrorMessage(e, '加载统计数据失败')));
   }, []);
 
   // Load all tags
@@ -407,6 +403,7 @@ export default function ContentPage() {
       setSavingNew(false);
     }
   };
+  handleSaveNewRef.current = handleSaveNew;
 
   const handleEditClick = async (item: ContentRecord) => {
     setEditingItem(item);
@@ -478,6 +475,7 @@ export default function ContentPage() {
       setSavingEdit(false);
     }
   };
+  handleSaveEditRef.current = handleSaveEdit;
 
   const handleToggleStatus = async (item: ContentRecord) => {
     const key = `${item.type}-${item.id}`;
@@ -485,15 +483,9 @@ export default function ContentPage() {
     // Optimistic update
     setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: newStatus } : i));
     setTogglingIds(prev => new Set(prev).add(key));
-    const data = { ...item, status: newStatus };
+    // Use dedicated status toggle API (only updates status field)
     try {
-      const res = await dispatchByType(item.type, {
-        movie: () => contentApi.updateMovie(item.id, data),
-        drama: () => contentApi.updateDrama(item.id, data),
-        variety: () => contentApi.updateVariety(item.id, data),
-        anime: () => contentApi.updateAnime(item.id, data),
-        short_drama: () => contentApi.updateShortDrama(item.id, data),
-      });
+      const res = await contentApi.toggleStatus(item.type, item.id, newStatus);
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         toast.success(newStatus === 1 ? '已上线' : '已下线');
       } else {
@@ -553,6 +545,12 @@ export default function ContentPage() {
     );
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     toast.success(`成功删除 ${successCount} 条内容`);
+    // 清理已删除条目的标签缓存
+    setContentTagMap(prev => {
+      const next = { ...prev };
+      for (const key of selectedKeys) { delete next[key]; }
+      return next;
+    });
     setSelectedKeys(new Set());
     setBatchProcessing(false);
     fetchItems();
@@ -570,25 +568,28 @@ export default function ContentPage() {
       })
       .filter(e => e.item && e.item.status !== newStatus);
     const results = await Promise.allSettled(
-      entries.map(e => {
-        const data = { ...e.item!, status: newStatus };
-        return dispatchByType(e.type, {
-          movie: () => contentApi.updateMovie(e.id, data),
-          drama: () => contentApi.updateDrama(e.id, data),
-          variety: () => contentApi.updateVariety(e.id, data),
-          anime: () => contentApi.updateAnime(e.id, data),
-          short_drama: () => contentApi.updateShortDrama(e.id, data),
-        });
-      })
+      entries.map(e => contentApi.toggleStatus(e.type, e.id, newStatus))
     );
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     toast.success(`成功${newStatus === 1 ? '上线' : '下线'} ${successCount} 条内容`);
+    // 清理已操作条目的标签缓存，确保刷新后标签一致
+    setContentTagMap(prev => {
+      const next = { ...prev };
+      for (const e of entries) { delete next[`${e.type}-${e.id}`]; }
+      return next;
+    });
     setSelectedKeys(new Set());
     setBatchProcessing(false);
     fetchItems();
   };
 
   // Keyboard shortcut: Ctrl+Enter to save in modal, Escape to close
+  // 用 ref 存储 editForm，避免表单输入导致频繁重新注册事件监听
+  const editFormRef = useRef(editForm);
+  editFormRef.current = editForm;
+  const formErrorsRef = useRef(formErrors);
+  formErrorsRef.current = formErrors;
+
   useEffect(() => {
     if (!editingItem && !creatingNew && !detailItem) return;
     const handler = (e: KeyboardEvent) => {
@@ -599,13 +600,13 @@ export default function ContentPage() {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (editingItem) handleSaveEdit();
-        else if (creatingNew) handleSaveNew();
+        if (editingItem) handleSaveEditRef.current();
+        else if (creatingNew) handleSaveNewRef.current();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [editingItem, creatingNew, detailItem, editForm]);
+  }, [editingItem, creatingNew, detailItem]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -733,7 +734,7 @@ export default function ContentPage() {
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
-              <thead>
+              <thead className="sticky top-0 z-10 shadow-sm">
                 <tr className="border-b-2 border-border bg-muted/40">
                   <th className="text-center px-3 py-3 w-10">
                     <input

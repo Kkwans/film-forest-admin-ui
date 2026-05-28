@@ -85,7 +85,6 @@ export default function LogsPage() {
         setTotal(data.total);
       }
     } catch (e) {
-      console.error('加载日志失败', e);
       toast.error('加载日志失败');
     } finally {
       setLoading(false);
@@ -246,7 +245,7 @@ export default function LogsPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                   <tr className="border-b border-border">
                     <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">时间</th>
                     <th className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">用户</th>

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Clock, Zap, Inbox, Tags, Users, Settings } from 'lucide-react';
-import { contentApi, crawlerApi } from '@/lib/api';
+import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, TrendingUp, Zap, Inbox, Tags, Users, Settings, FileText } from 'lucide-react';
+import { contentApi, crawlerApi, statsApi } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Stats {
   movies: number;
@@ -34,42 +35,51 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({ movies: 0, dramas: 0, varieties: 0, animes: 0, shortDramas: 0 });
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const [crawlerStatus, setCrawlerStatus] = useState<CrawlerStatusItem[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const toast = useToast();
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const [statsRes, allRes, crawlerRes] = await Promise.all([
+      const [statsRes, allRes, crawlerRes, overviewRes] = await Promise.allSettled([
         contentApi.getStats() as Promise<AxiosResponse<StatsResponse>>,
         contentApi.listAll({ page: 1, size: 20 }) as Promise<AxiosResponse<RecentItemsResponse>>,
         crawlerApi.getStatus() as Promise<AxiosResponse<CrawlerStatusResponse>>,
+        statsApi.getOverview() as Promise<AxiosResponse<{ code: number; data: { totalUsers: number } }>>,
       ]);
 
-      if (statsRes.data?.code === 200) setStats(statsRes.data.data);
-      if (allRes.data?.code === 200) {
-        const raw = allRes.data.data;
+      // 每个 API 独立处理，一个失败不影响其他
+      if (statsRes.status === 'fulfilled' && statsRes.value.data?.code === 200) {
+        setStats(statsRes.value.data.data);
+      }
+      if (allRes.status === 'fulfilled' && allRes.value.data?.code === 200) {
+        const raw = allRes.value.data.data;
         const items: RecentItem[] = Array.isArray(raw) ? raw : (raw.records || []);
         items.sort((a: RecentItem, b: RecentItem) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setRecentItems(items.slice(0, 8));
       }
-      if (crawlerRes.data?.code === 200) {
-        setCrawlerStatus(crawlerRes.data.data.schedules || []);
+      if (crawlerRes.status === 'fulfilled' && crawlerRes.value.data?.code === 200) {
+        setCrawlerStatus(crawlerRes.value.data.data.schedules || []);
+      }
+      if (overviewRes.status === 'fulfilled' && overviewRes.value.data?.code === 200) {
+        setTotalUsers(overviewRes.value.data.data.totalUsers || 0);
       }
       setLastRefresh(new Date());
     } catch (e) {
-      console.error('fetch dashboard data error', e);
       toast.error('数据加载失败，请检查后端服务');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
+    if (!autoRefresh) return;
     const timer = setInterval(fetchData, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [fetchData, autoRefresh]);
 
   const totalContent = stats.movies + stats.dramas + stats.varieties + stats.animes + stats.shortDramas;
   const runningCrawlers = crawlerStatus.filter(s => s.status === 'running').length;
@@ -93,6 +103,7 @@ export default function AdminDashboard() {
     { label: '爬虫配置', value: crawlerStatus.length, icon: Activity, color: 'text-violet-500', bgColor: 'bg-violet-500/10', href: '/crawler', gradient: 'from-violet-500/5 to-transparent' },
     { label: '运行中', value: runningCrawlers, icon: Zap, color: runningCrawlers > 0 ? 'text-emerald-500' : 'text-muted-foreground', bgColor: runningCrawlers > 0 ? 'bg-emerald-500/10' : 'bg-muted', href: '/crawler', gradient: runningCrawlers > 0 ? 'from-emerald-500/5 to-transparent' : 'from-muted/5 to-transparent' },
     { label: '总抓取量', value: totalCrawlItems, icon: TrendingUp, color: 'text-amber-500', bgColor: 'bg-amber-500/10', href: '/stats', gradient: 'from-amber-500/5 to-transparent' },
+    { label: '用户数', value: totalUsers, icon: Users, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', href: '/users', gradient: 'from-emerald-500/5 to-transparent' },
   ];
 
   const contentStats = [
@@ -111,17 +122,31 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-foreground">仪表盘</h1>
           <p className="text-sm text-muted-foreground mt-0.5">影视森林管理后台概览</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchData(); }}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">刷新</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoRefresh(prev => !prev)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+              autoRefresh
+                ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                : 'text-muted-foreground bg-muted hover:bg-muted/80'
+            }`}
+            title={autoRefresh ? '点击暂停自动刷新' : '点击开启自动刷新'}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
+            <span className="hidden sm:inline">{autoRefresh ? '自动刷新' : '已暂停'}</span>
+          </button>
+          <button
+            onClick={() => { setLoading(true); fetchData(); }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">刷新</span>
+          </button>
+        </div>
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {statCards.map((stat) => (
           <Link
             key={stat.label}
@@ -146,6 +171,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Content Breakdown */}
+      <ErrorBoundary moduleName="内容分布">
       <div className="rounded-xl bg-card border border-border p-5">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -174,6 +200,8 @@ export default function AdminDashboard() {
           })}
         </div>
       </div>
+
+      </ErrorBoundary>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Content */}
@@ -298,7 +326,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <ErrorBoundary moduleName="快捷操作">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {[
           { label: '内容管理', desc: '管理影视内容', icon: Film, href: '/content', color: 'text-blue-500', bg: 'bg-blue-500/10' },
           { label: '爬虫管理', desc: '配置爬虫任务', icon: Activity, href: '/crawler', color: 'text-violet-500', bg: 'bg-violet-500/10' },
@@ -307,6 +336,7 @@ export default function AdminDashboard() {
           { label: '资源管理', desc: '管理媒体资源', icon: Database, href: '/resources', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           { label: '用户管理', desc: '管理用户账号', icon: Users, href: '/users', color: 'text-rose-500', bg: 'bg-rose-500/10' },
           { label: '系统设置', desc: '配置站点参数', icon: Settings, href: '/settings', color: 'text-slate-500', bg: 'bg-slate-500/10' },
+          { label: '操作日志', desc: '查看操作记录', icon: FileText, href: '/logs', color: 'text-orange-500', bg: 'bg-orange-500/10' },
         ].map((action) => (
           <Link
             key={action.label}
@@ -325,9 +355,11 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      </ErrorBoundary>
+
       {/* Footer info */}
       <div className="text-center text-xs text-muted-foreground py-2">
-        上次刷新: {lastRefresh.toLocaleTimeString('zh-CN')} · 每30秒自动刷新
+        上次刷新: {lastRefresh.toLocaleTimeString('zh-CN')} · {autoRefresh ? '每30秒自动刷新' : '自动刷新已暂停'}
       </div>
     </div>
   );

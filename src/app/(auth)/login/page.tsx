@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Film, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { settingsApi } from '@/lib/api';
+import { extractErrorMessage } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +23,7 @@ export default function LoginPage() {
       fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (data.code === 200) router.push('/'); })
-        .catch(e => console.error('检查登录状态失败', e))
+        .catch(() => {})
         .finally(() => setCheckingAuth(false));
     } else {
       setCheckingAuth(false);
@@ -54,8 +56,8 @@ export default function LoginPage() {
       } else {
         toast.error(data.message || '登录失败');
       }
-    } catch {
-      toast.error('网络错误，请重试');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '网络错误，请重试'));
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import { Tags, Plus, Pencil, Trash2, Search, Loader2, Inbox, Tag, X, Hash } from
 import { tagApi, type TagItem } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
+import { extractErrorMessage } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -48,7 +49,6 @@ export default function TagsPage() {
         setTags(res.data.data || []);
       }
     } catch (e) {
-      console.error('加载标签失败', e);
       toast.error('加载标签失败');
     } finally {
       setLoading(false);
@@ -100,8 +100,8 @@ export default function TagsPage() {
       }
       setShowModal(false);
       loadTags();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '操作失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '操作失败'));
     } finally {
       setSaving(false);
     }
@@ -120,8 +120,8 @@ export default function TagsPage() {
       await tagApi.delete(tag.id);
       toast.success('标签已删除');
       loadTags();
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '删除失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '删除失败'));
     }
   };
 

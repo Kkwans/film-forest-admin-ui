@@ -1,0 +1,15 @@
+{
+  "/(auth)/login/page": "/login",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/content/page": "/content",
+  "/crawler/page": "/crawler",
+  "/favicon.ico/route": "/favicon.ico",
+  "/logs/page": "/logs",
+  "/page": "/",
+  "/resources/page": "/resources",
+  "/settings/page": "/settings",
+  "/stats/page": "/stats",
+  "/tags/page": "/tags",
+  "/users/page": "/users"
+}

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
-import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search } from 'lucide-react';
+import { Database, HardDrive, Link2, Server, RefreshCw, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Search, Eye, EyeOff } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 import { resourceApi, type SaveMagnetData, type SaveCloudData } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
@@ -148,6 +148,7 @@ export default function ResourcesPage() {
   const [editingSource, setEditingSource] = useState<SourceSite | null>(null);
   const [showSourceForm, setShowSourceForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ magnet: true, cloud: true, sources: true });
+  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
   // ===== 磁力资源分页+筛选状态 =====
   const [magnets, setMagnets] = useState<MagnetResource[]>([]);
@@ -197,7 +198,6 @@ export default function ResourcesPage() {
       setMagnetTotal(data?.total || 0);
       setMagnetPage(data?.current || page);
     } catch (e) {
-      console.error('fetch magnet error', e);
       toast.error('磁力资源加载失败');
     } finally {
       setMagnetLoading(false);
@@ -218,7 +218,6 @@ export default function ResourcesPage() {
       setCloudTotal(data?.total || 0);
       setCloudPage(data?.current || page);
     } catch (e) {
-      console.error('fetch cloud error', e);
       toast.error('网盘资源加载失败');
     } finally {
       setCloudLoading(false);
@@ -235,7 +234,6 @@ export default function ResourcesPage() {
       setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setSources(sourcesRes.data?.data || []);
     } catch (e) {
-      console.error('fetch base data error', e);
       toast.error('数据加载失败');
     } finally {
       setLoading(false);
@@ -565,8 +563,8 @@ export default function ResourcesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[700px]">
-                <div className="hidden md:grid grid-cols-[40px_60px_60px_1.5fr_70px_80px_50px_2fr_100px_70px] gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+              <div className="min-w-[700px] sticky top-0 z-10">
+                <div className="hidden md:grid grid-cols-[40px_60px_60px_1.5fr_70px_80px_50px_2fr_100px_70px] gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border bg-card shadow-sm">
                   <div>ID</div><div>类型</div><div>内容ID</div><div>标题</div><div>分辨率</div><div>字幕</div><div>排序</div><div>磁力链接</div><div>创建时间</div><div>操作</div>
                 </div>
                 {magnets.map((m) => (
@@ -640,8 +638,8 @@ export default function ResourcesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[700px]">
-                <div className="hidden md:grid grid-cols-[40px_60px_60px_1.5fr_80px_60px_50px_2fr_100px_70px] gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border">
+              <div className="min-w-[700px] sticky top-0 z-10">
+                <div className="hidden md:grid grid-cols-[40px_60px_60px_1.5fr_80px_60px_50px_2fr_100px_70px] gap-2 text-xs text-muted-foreground px-4 py-2 border-b border-border bg-card shadow-sm">
                   <div>ID</div><div>类型</div><div>内容ID</div><div>标题</div><div>网盘</div><div>密码</div><div>排序</div><div>链接</div><div>创建时间</div><div>操作</div>
                 </div>
                 {clouds.map((c) => (
@@ -652,7 +650,16 @@ export default function ResourcesPage() {
                       <div><a href={`/content?id=${c.contentId}`} className="text-xs text-primary hover:underline">#{c.contentId}</a></div>
                       <div className="text-foreground truncate" title={c.title}>{c.title}</div>
                       <div><Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge></div>
-                      <div className="text-muted-foreground text-xs">{c.password || '-'}</div>
+                      <div className="text-muted-foreground text-xs flex items-center gap-1">
+                        {c.password ? (
+                          <>
+                            <span>{showPasswords[c.id] ? c.password : '••••'}</span>
+                            <button onClick={() => setShowPasswords(prev => ({ ...prev, [c.id]: !prev[c.id] }))} className="p-0.5 rounded hover:bg-muted" title={showPasswords[c.id] ? '隐藏' : '显示'}>
+                              {showPasswords[c.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                          </>
+                        ) : '-'}
+                      </div>
                       <div className="text-muted-foreground text-xs">{c.sort ?? 0}</div>
                       <div className="text-muted-foreground text-xs truncate">
                         {c.url ? <a href={c.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">{c.url.slice(0, 40)}...</a> : '-'}
@@ -678,7 +685,14 @@ export default function ResourcesPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <a href={`/content?id=${c.contentId}`} className="text-xs text-primary hover:underline">内容#{c.contentId}</a>
                         <Badge variant="outline" className="text-xs border-primary text-primary">{DISK_TYPE_LABELS[c.diskType] || c.diskType}</Badge>
-                        {c.password && <span className="text-muted-foreground text-xs">密码: {c.password}</span>}
+                        {c.password && (
+                          <span className="text-muted-foreground text-xs flex items-center gap-1">
+                            密码: {showPasswords[c.id] ? c.password : '••••'}
+                            <button onClick={() => setShowPasswords(prev => ({ ...prev, [c.id]: !prev[c.id] }))} className="p-0.5 rounded hover:bg-muted">
+                              {showPasswords[c.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
