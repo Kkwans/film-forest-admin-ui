@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { crawlerApi, contentApi, type CrawlerSchedule } from '@/lib/api';
+import { crawlerApi, contentApi, type CrawlerSchedule, type CrawlerTaskLog } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -10,39 +10,18 @@ import { Modal } from '@/components/ui/modal';
 import { Play, Square, ToggleLeft, ToggleRight, Clock, Activity, Database, Plus, Pencil, Trash2, RefreshCw, FileText, ChevronDown, ChevronUp, Loader2, RotateCcw, Filter, CheckCircle, XCircle, AlertTriangle, StopCircle } from 'lucide-react';
 
 // ========== 类型定义 ==========
+// 注意：CrawlerTaskLog 从 @/lib/api 导入
+// CrawlerScheduleItem 是 API 返回的简化类型（与 CrawlerSchedule 不同），保留本地定义
+interface CrawlerScheduleItem { id: number; name: string; contentType: string; sourceSite: string; enabled: number; status: string; totalRuns: number; totalItems: number; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string | null; lastRunTime: string | null; nextRunTime: string | null; }
 interface SourceOption { id: number; name: string; url: string; type: string; enabled: number; }
 // 爬虫状态 API 返回结构（直接返回 data，非 Result 包装）
 interface CrawlerStatusData { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
-interface CrawlerScheduleItem { id: number; name: string; contentType: string; sourceSite: string; enabled: number; status: string; totalRuns: number; totalItems: number; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string | null; lastRunTime: string | null; nextRunTime: string | null; }
-interface CrawlerTaskLog { id: number; scheduleId: number; scheduleName: string; contentType: string; status: string; itemsCrawled: number; itemsAdded: number; itemsUpdated: number; errorMessage: string | null; durationMs: number; startedAt: string; finishedAt: string | null; }
 interface LogResult { code: number; data: CrawlerTaskLog[]; }
 interface SourcesResult { code: number; data: SourceOption[]; }
 interface GenresResult { code: number; data: string[]; }
 
 type CronMode = 'interval' | 'daily' | 'weekly' | 'monthly';
 
-const WEEKDAYS = [
-  { label: '周日', value: '0' }, { label: '周一', value: '1' }, { label: '周二', value: '2' },
-  { label: '周三', value: '3' }, { label: '周四', value: '4' }, { label: '周五', value: '5' }, { label: '周六', value: '6' },
-];
-
-const INTERVAL_OPTIONS = [
-  { label: '每10分钟', value: '*/10 * * * *' },
-  { label: '每15分钟', value: '*/15 * * * *' },
-  { label: '每20分钟', value: '*/20 * * * *' },
-  { label: '每30分钟', value: '*/30 * * * *' },
-  { label: '每1小时', value: '0 * * * *' },
-  { label: '每2小时', value: '0 */2 * * *' },
-  { label: '每3小时', value: '0 */3 * * *' },
-  { label: '每4小时', value: '0 */4 * * *' },
-  { label: '每6小时', value: '0 */6 * * *' },
-  { label: '每8小时', value: '0 */8 * * *' },
-  { label: '每12小时', value: '0 */12 * * *' },
-  { label: '每天早8点', value: '0 8 * * *' },
-  { label: '每天晚10点', value: '0 22 * * *' },
-  { label: '每周一早8点', value: '0 8 * * 1' },
-  { label: '每月1号早8点', value: '0 8 1 * *' },
-];
 
 function parseCronMode(expr: string): CronMode {
   if (!expr) return 'daily';
@@ -97,7 +76,7 @@ function describeCron(expr: string): string {
 
 function CronBuilder({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [mode, setMode] = useState<CronMode>(() => parseCronMode(value));
-  const [interval, setInterval] = useState(value || '*/30 * * * *');
+  const [intervalValue, setIntervalValue] = useState(value || '*/30 * * * *');
   const [hour, setHour] = useState('2');
   const [minute, setMinute] = useState('0');
   const [dom, setDom] = useState('1');
@@ -106,7 +85,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
   useEffect(() => {
     const m = parseCronMode(value);
     setMode(m);
-    if (m === 'interval') setInterval(value);
+    if (m === 'interval') setIntervalValue(value);
     else {
       const parts = value.split(' ');
       if (parts.length === 5) {
@@ -119,7 +98,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
   }, [value]);
 
   const update = (newMode: CronMode, newInterval?: string, newHour?: string, newMinute?: string, newDom?: string, newDow?: string[]) => {
-    const result = buildCron(newMode, newInterval || interval, newHour || hour, newMinute || minute, newDom || dom, newDow || dow);
+    const result = buildCron(newMode, newInterval || intervalValue, newHour || hour, newMinute || minute, newDom || dom, newDow || dow);
     onChange(result);
   };
 
@@ -130,7 +109,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
     const curMin = parts.length === 5 ? parts[0] : minute;
     const curHour = parts.length === 5 ? parts[1] : hour;
     if (newMode === 'interval') {
-      update(newMode, interval);
+      update(newMode, intervalValue);
     } else if (newMode === 'daily') {
       setHour(curHour);
       setMinute(curMin);
@@ -172,8 +151,8 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
           <label className="text-xs text-muted-foreground">选择间隔</label>
           <div className="flex flex-wrap gap-1.5 md:gap-2">
             {INTERVAL_OPTIONS.map(opt => (
-              <button key={opt.value} type="button" onClick={() => { setInterval(opt.value); onChange(opt.value); }}
-                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${interval === opt.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+              <button key={opt.value} type="button" onClick={() => { setIntervalValue(opt.value); onChange(opt.value); }}
+                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${intervalValue === opt.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                 {opt.label}
               </button>
             ))}
@@ -193,7 +172,7 @@ function CronBuilder({ value, onChange }: { value: string; onChange: (v: string)
                   const cron = val >= 60 && val % 60 === 0
                     ? `0 */${val / 60} * * *`
                     : `*/${val} * * * *`;
-                  setInterval(cron);
+                  setIntervalValue(cron);
                   onChange(cron);
                 }
               }}
@@ -270,14 +249,48 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(h / 24)}天前`;
 }
 
+// ========== 常量（模块级，避免组件重渲染时重复创建）==========
+
+const WEEKDAYS = [
+  { label: '周日', value: '0' }, { label: '周一', value: '1' }, { label: '周二', value: '2' },
+  { label: '周三', value: '3' }, { label: '周四', value: '4' }, { label: '周五', value: '5' }, { label: '周六', value: '6' },
+];
+
+const INTERVAL_OPTIONS = [
+  { label: '每10分钟', value: '*/10 * * * *' },
+  { label: '每15分钟', value: '*/15 * * * *' },
+  { label: '每20分钟', value: '*/20 * * * *' },
+  { label: '每30分钟', value: '*/30 * * * *' },
+  { label: '每1小时', value: '0 * * * *' },
+  { label: '每2小时', value: '0 */2 * * *' },
+  { label: '每3小时', value: '0 */3 * * *' },
+  { label: '每4小时', value: '0 */4 * * *' },
+  { label: '每6小时', value: '0 */6 * * *' },
+  { label: '每8小时', value: '0 */8 * * *' },
+  { label: '每12小时', value: '0 */12 * * *' },
+  { label: '每天早8点', value: '0 8 * * *' },
+  { label: '每天晚10点', value: '0 22 * * *' },
+  { label: '每周一早8点', value: '0 8 * * 1' },
+  { label: '每月1号早8点', value: '0 8 1 * *' },
+];
+
 const TYPE_MAP: Record<string, string> = {
   movie: '🎬 电影', drama: '📺 剧集', variety: '🎤 综艺', anime: '🎯 动漫', short: '⚡ 短剧'
 };
+
 
 const PRIORITY_OPTIONS = [
   { label: '按评分从高到低', value: 'by_score' },
   { label: '按热度从高到低', value: 'by_hot' },
 ];
+
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+  success: { label: '成功', icon: <CheckCircle className="w-3 h-3" />, className: 'bg-primary/20 text-primary dark:text-primary' },
+  failed: { label: '失败', icon: <XCircle className="w-3 h-3" />, className: 'bg-destructive/20 text-destructive' },
+  running: { label: '运行中', icon: <Loader2 className="w-3 h-3 animate-spin" />, className: 'bg-blue-500/20 text-blue-500' },
+  stopped: { label: '已停止', icon: <StopCircle className="w-3 h-3" />, className: 'bg-orange-500/20 text-orange-500' },
+  pending_retry: { label: '等待重试', icon: <RotateCcw className="w-3 h-3" />, className: 'bg-yellow-500/20 text-yellow-600' },
+};
 
 interface ScheduleForm {
   id?: number;
@@ -385,7 +398,7 @@ export default function CrawlerPage() {
     if (logsLoaded) {
       fetchLogs(logStatusFilter);
     }
-  }, [logStatusFilter]);
+  }, [logStatusFilter, fetchLogs, logsLoaded]);
 
   // 加载资源来源列表
   useEffect(() => {
@@ -395,7 +408,7 @@ export default function CrawlerPage() {
     }).catch(e => console.error('加载资源来源失败', e));
   }, []);
 
-  // 当 contentType 变化时加载 genre 列表
+  // 当 contentType 变化且表单打开时加载 genre 列表
   useEffect(() => {
     if (showForm) {
       contentApi.getGenres(form.contentType).then((res: AxiosResponse<GenresResult>) => {
@@ -538,15 +551,6 @@ export default function CrawlerPage() {
     } finally {
       setRetryAllLoading(false);
     }
-  };
-
-  // 状态标签渲染
-  const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
-    success: { label: '成功', icon: <CheckCircle className="w-3 h-3" />, className: 'bg-primary/20 text-primary dark:text-primary' },
-    failed: { label: '失败', icon: <XCircle className="w-3 h-3" />, className: 'bg-destructive/20 text-destructive' },
-    running: { label: '运行中', icon: <Loader2 className="w-3 h-3 animate-spin" />, className: 'bg-blue-500/20 text-blue-500' },
-    stopped: { label: '已停止', icon: <StopCircle className="w-3 h-3" />, className: 'bg-orange-500/20 text-orange-500' },
-    pending_retry: { label: '等待重试', icon: <RotateCcw className="w-3 h-3" />, className: 'bg-yellow-500/20 text-yellow-600' },
   };
 
   const renderStatusBadge = (status: string) => {
