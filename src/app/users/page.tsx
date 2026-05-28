@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Search, Pencil, Trash2, ToggleLeft, ToggleRight, Key, Loader2, ChevronLeft, ChevronRight, Shield, ShieldOff, X } from 'lucide-react';
+import { Users, UserPlus, Search, Pencil, Trash2, Key, Loader2, Shield, ShieldOff, X } from 'lucide-react';
 import { userApi, type UserItem } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { Modal } from '@/components/ui/modal';
+import Pagination from '@/components/Pagination';
 
 interface PageResult<T> {
   records: T[];
@@ -351,17 +352,10 @@ export default function UsersPage() {
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">共 {total} 条，第 {page}/{totalPages} 页</p>
-          <div className="flex items-center gap-1.5">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="p-2 rounded-lg border bg-card hover:bg-muted disabled:opacity-40 transition-colors">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="p-2 rounded-lg border bg-card hover:bg-muted disabled:opacity-40 transition-colors">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
 

@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Search, Loader2, ChevronLeft, ChevronRight, Activity, CheckCircle2, XCircle, Filter, X } from 'lucide-react';
+import { FileText, Search, Loader2, Activity, CheckCircle2, XCircle, Filter, X } from 'lucide-react';
 import { logApi, type LogItem } from '@/lib/api';
 import { Select } from '@/components/ui/select';
+import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/ui/toast';
 
 interface PageResult<T> {
@@ -313,17 +314,10 @@ export default function LogsPage() {
       </Card>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">共 {total} 条，第 {page}/{totalPages} 页</p>
-          <div className="flex items-center gap-1.5">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="p-2 rounded-lg border bg-card hover:bg-muted disabled:opacity-40 transition-colors">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="p-2 rounded-lg border bg-card hover:bg-muted disabled:opacity-40 transition-colors">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
     </div>

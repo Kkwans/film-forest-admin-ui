@@ -251,7 +251,7 @@ export default function ContentPage() {
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, statusFilter, debouncedKeyword, page, pageSize]);
+  }, [typeFilter, statusFilter, debouncedKeyword, page]);
 
   // typeFilter='all' 时的客户端分页
   useEffect(() => {
@@ -453,7 +453,7 @@ export default function ContentPage() {
       return;
     }
     setSavingEdit(true);
-    const data = { ...editingItem, ...buildSubmitData(editForm) };
+    const data = buildSubmitData(editForm);
     try {
       const res = await dispatchByType(editingItem.type, {
         movie: () => contentApi.updateMovie(editingItem.id, data),

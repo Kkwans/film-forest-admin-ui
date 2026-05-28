@@ -64,6 +64,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'charts' | 'report'>('charts');
   const [exporting, setExporting] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [reportDays, setReportDays] = useState(30);
   const toast = useToast();
 
@@ -176,24 +177,30 @@ export default function StatsPage() {
               <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> 报表</span>
             </button>
           </div>
-          {/* Export dropdown */}
-          <div className="relative group">
+          {/* Export dropdown - click-based for mobile compatibility */}
+          <div className="relative">
             <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               disabled={exporting !== null}
             >
               {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
               {exporting ? '导出中...' : '导出'}
             </button>
-            <div className="absolute right-0 top-full mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
-              <div className="py-1">
-                <button onClick={() => downloadCsv(statsApi.exportOverview, 'film-forest-overview.csv', '概览数据')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📊 概览数据</button>
-                <button onClick={() => downloadCsv(() => statsApi.exportContent(), 'film-forest-content-all.csv', '全部内容')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📋 全部内容</button>
-                <button onClick={() => downloadCsv(() => statsApi.exportContent('movie'), 'film-forest-movies.csv', '电影列表')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🎬 电影列表</button>
-                <button onClick={() => downloadCsv(() => statsApi.exportContent('drama'), 'film-forest-dramas.csv', '剧集列表')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📺 剧集列表</button>
-                <button onClick={() => downloadCsv(() => statsApi.exportHotSearch(30), 'film-forest-hot-search.csv', '搜索热词')} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🔥 搜索热词</button>
-              </div>
-            </div>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg z-50">
+                  <div className="py-1">
+                    <button onClick={() => { downloadCsv(statsApi.exportOverview, 'film-forest-overview.csv', '概览数据'); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📊 概览数据</button>
+                    <button onClick={() => { downloadCsv(() => statsApi.exportContent(), 'film-forest-content-all.csv', '全部内容'); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📋 全部内容</button>
+                    <button onClick={() => { downloadCsv(() => statsApi.exportContent('movie'), 'film-forest-movies.csv', '电影列表'); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🎬 电影列表</button>
+                    <button onClick={() => { downloadCsv(() => statsApi.exportContent('drama'), 'film-forest-dramas.csv', '剧集列表'); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">📺 剧集列表</button>
+                    <button onClick={() => { downloadCsv(() => statsApi.exportHotSearch(30), 'film-forest-hot-search.csv', '搜索热词'); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">🔥 搜索热词</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

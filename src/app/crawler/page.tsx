@@ -14,6 +14,7 @@ interface SourceOption { id: number; name: string; url: string; type: string; en
 // 爬虫状态 API 返回结构（直接返回 data，非 Result 包装）
 interface CrawlerStatusData { total: number; running: number; idle: number; schedules: CrawlerScheduleItem[]; }
 interface CrawlerScheduleItem { id: number; name: string; contentType: string; sourceSite: string; enabled: number; status: string; totalRuns: number; totalItems: number; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string | null; lastRunTime: string | null; nextRunTime: string | null; }
+interface CrawlerTaskLog { id: number; scheduleId: number; scheduleName: string; contentType: string; status: string; itemsCrawled: number; itemsAdded: number; itemsUpdated: number; errorMessage: string | null; durationMs: number; startedAt: string; finishedAt: string | null; }
 interface LogResult { code: number; data: CrawlerTaskLog[]; }
 interface SourcesResult { code: number; data: SourceOption[]; }
 interface GenresResult { code: number; data: string[]; }
@@ -289,27 +290,6 @@ interface ScheduleForm {
   priority: string;
   genreFilter: string;
   enabled: number;
-}
-
-interface SourceOption {
-  id: number;
-  name: string;
-  url: string;
-}
-
-interface CrawlerTaskLog {
-  id: number;
-  scheduleId: number;
-  scheduleName: string;
-  contentType: string;
-  status: string;
-  itemsCrawled: number;
-  itemsAdded: number;
-  itemsUpdated: number;
-  errorMessage: string | null;
-  durationMs: number;
-  startedAt: string;
-  finishedAt: string | null;
 }
 
 const EMPTY_FORM: ScheduleForm = {
