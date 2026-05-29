@@ -6,6 +6,7 @@ import { Film, Activity, Database, ArrowRight, Play, Square, RefreshCw, Trending
 import { contentApi, crawlerApi, statsApi } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
+import { extractErrorMessage } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -67,8 +68,8 @@ export default function AdminDashboard() {
         setTotalUsers(overviewRes.value.data.data.totalUsers || 0);
       }
       setLastRefresh(new Date());
-    } catch (e) {
-      toast.error('数据加载失败，请检查后端服务');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '数据加载失败，请检查后端服务'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ export default function AdminDashboard() {
       const hours = Math.floor(mins / 60);
       if (hours < 24) return `${hours}小时前`;
       return `${Math.floor(hours / 24)}天前`;
-    } catch { return dateStr; }
+    } catch (e: unknown) { return dateStr; }
   };
 
   const statCards = [

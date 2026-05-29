@@ -23,7 +23,7 @@ export default function LoginPage() {
       fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (data.code === 200) router.push('/'); })
-        .catch(() => {})
+        .catch(() => { /* ignore */ })
         .finally(() => setCheckingAuth(false));
     } else {
       setCheckingAuth(false);
@@ -36,6 +36,7 @@ export default function LoginPage() {
       toast.warning('请输入用户名和密码');
       return;
     }
+    if (loading) return;
 
     setLoading(true);
 
