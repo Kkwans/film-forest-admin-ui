@@ -9,6 +9,7 @@ import Pagination from '@/components/Pagination';
 import { resourceApi, type SaveMagnetData, type SaveCloudData } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
+import { extractErrorMessage } from '@/lib/utils';
 import { useDialog } from '@/components/ui/dialog';
 import { Modal } from '@/components/ui/modal';
 
@@ -197,9 +198,7 @@ export default function ResourcesPage() {
       setMagnets(data?.records || []);
       setMagnetTotal(data?.total || 0);
       setMagnetPage(data?.current || page);
-    } catch (e) {
-      toast.error('磁力资源加载失败');
-    } finally {
+    } catch (e: unknown) { toast.error('磁力资源加载失败'); } finally {
       setMagnetLoading(false);
     }
   }, [toast]);
@@ -217,9 +216,7 @@ export default function ResourcesPage() {
       setClouds(data?.records || []);
       setCloudTotal(data?.total || 0);
       setCloudPage(data?.current || page);
-    } catch (e) {
-      toast.error('网盘资源加载失败');
-    } finally {
+    } catch (e: unknown) { toast.error('网盘资源加载失败'); } finally {
       setCloudLoading(false);
     }
   }, [toast]);
@@ -233,9 +230,7 @@ export default function ResourcesPage() {
       ]);
       setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setSources(sourcesRes.data?.data || []);
-    } catch (e) {
-      toast.error('数据加载失败');
-    } finally {
+    } catch (e: unknown) { toast.error('数据加载失败'); } finally {
       setLoading(false);
     }
   };
@@ -274,9 +269,7 @@ export default function ResourcesPage() {
       setEditingMagnet(null);
       fetchMagnets(editingMagnet.id ? magnetPage : 1, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword });
       fetchBaseData();
-    } catch {
-      toast.error('保存失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '保存失败')); }
   };
 
   const handleDeleteMagnet = async (id: number) => {
@@ -287,9 +280,7 @@ export default function ResourcesPage() {
       toast.success('已删除');
       fetchMagnets(magnetPage, { contentType: magnetFilter.contentType, keyword: magnetFilter.keyword });
       fetchBaseData();
-    } catch {
-      toast.error('删除失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '删除失败')); }
   };
 
   // ===== 网盘资源编辑 =====
@@ -309,9 +300,7 @@ export default function ResourcesPage() {
       setEditingCloud(null);
       fetchClouds(editingCloud.id ? cloudPage : 1, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword });
       fetchBaseData();
-    } catch {
-      toast.error('保存失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '保存失败')); }
   };
 
   const handleDeleteCloud = async (id: number) => {
@@ -322,9 +311,7 @@ export default function ResourcesPage() {
       toast.success('已删除');
       fetchClouds(cloudPage, { contentType: cloudFilter.contentType, keyword: cloudFilter.keyword });
       fetchBaseData();
-    } catch {
-      toast.error('删除失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '删除失败')); }
   };
 
   // ===== 资源来源 =====
@@ -336,9 +323,7 @@ export default function ResourcesPage() {
       await resourceApi.toggleSource(id, newEnabled);
       setSources(sources.map(s => s.id === id ? { ...s, enabled: newEnabled } : s));
       toast.success(newEnabled ? '已启用' : '已禁用');
-    } catch {
-      toast.error('操作失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '操作失败')); }
   };
 
   const handleEditSource = (source: SourceSite) => {
@@ -354,9 +339,7 @@ export default function ResourcesPage() {
       fetchBaseData();
       setShowSourceForm(false);
       setEditingSource(null);
-    } catch {
-      toast.error('保存失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '保存失败')); }
   };
 
   const handleDeleteSource = async (id: number) => {
@@ -366,9 +349,7 @@ export default function ResourcesPage() {
       await resourceApi.deleteSource(id);
       setSources(sources.filter(s => s.id !== id));
       toast.success('已删除');
-    } catch {
-      toast.error('删除失败');
-    }
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '删除失败')); }
   };
 
   const handleAddSource = () => {

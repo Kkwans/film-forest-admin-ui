@@ -273,7 +273,7 @@ export default function ContentPage() {
   useEffect(() => {
     tagApi.list().then(res => {
       if (res.data?.code === 200) setAllTags(res.data.data || []);
-    }).catch(() => {});
+    }).catch((e: unknown) => toast.error(extractErrorMessage(e, '标签加载失败')));
   }, []);
 
   const filtered = items;
@@ -416,9 +416,7 @@ export default function ContentPage() {
       } else {
         setSelectedTagIds([]);
       }
-    } catch {
-      setSelectedTagIds([]);
-    }
+    } catch (e: unknown) { setSelectedTagIds([]); }
     setEditForm({
       title: item.title || '',
       posterUrl: item.posterUrl || '',

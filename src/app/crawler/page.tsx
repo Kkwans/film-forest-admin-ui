@@ -574,9 +574,7 @@ export default function CrawlerPage() {
       } else {
         toast.error(res.data?.message || '重试失败');
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '重试失败');
-    } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '重试失败')); } finally {
       setRetryingId(null);
     }
   };
@@ -601,9 +599,7 @@ export default function CrawlerPage() {
       } else {
         toast.error('批量重试失败');
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '批量重试失败');
-    } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '批量重试失败')); } finally {
       setRetryAllLoading(false);
     }
   };

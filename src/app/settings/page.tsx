@@ -74,10 +74,7 @@ export default function SettingsPage() {
       setSaved(true);
       toast.success('设置已保存');
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      toast.error(extractErrorMessage(e, '保存失败'));
-      toast.error('保存失败，请检查后端服务');
-    } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '保存失败')); } finally {
       setSaving(false);
     }
   };
