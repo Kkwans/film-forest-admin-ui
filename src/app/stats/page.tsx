@@ -5,6 +5,7 @@ import { BarChart3, Inbox, Download, FileText, Loader2 } from 'lucide-react';
 import { statsApi, contentApi, crawlerApi, type CrawlerSchedule } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { useToast } from '@/components/ui/toast';
+import { extractErrorMessage } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -92,7 +93,7 @@ export default function StatsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success(`${label}导出成功`);
-    } catch {
+    } catch (e: unknown) {
       toast.error(`${label}导出失败`);
     } finally {
       setExporting(null);
@@ -124,8 +125,8 @@ export default function StatsPage() {
         }
         if (dailyRes.data?.code === 200) setDailyStats(dailyRes.data.data || []);
         if (hotSearchRes.data?.code === 200) setHotSearch(hotSearchRes.data.data || []);
-      } catch (e) {
-        toast.error('统计数据加载失败');
+      } catch (e: unknown) {
+        toast.error(extractErrorMessage(e, '统计数据加载失败'));
       } finally { setLoading(false); }
     };
     fetchData();
@@ -152,7 +153,7 @@ export default function StatsPage() {
     if (activeTab === 'report' && !report && !loading) {
       statsApi.getReport(reportDays).then(res => {
         if (res.data?.code === 200) setReport(res.data.data);
-      }).catch(() => toast.error('报表数据加载失败'));
+      }).catch((e: unknown) => toast.error(extractErrorMessage(e, '报表数据加载失败')));
     }
   }, [activeTab, reportDays, report, loading, toast]);
 
