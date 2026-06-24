@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { crawlerApi, contentApi, type CrawlerSchedule, type CrawlerTaskLog } from '@/lib/api';
+import { crawlerApi, contentApi, type CrawlerTaskLog } from '@/lib/api';
 import type { AxiosResponse } from 'axios';
 import { extractErrorMessage } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
@@ -498,7 +498,7 @@ export default function CrawlerPage() {
     try {
       const arr = JSON.parse(gf);
       if (Array.isArray(arr)) return arr.join('，');
-    } catch {}
+    } catch (e: unknown) { return gf; }
     return gf;
   };
 
@@ -522,14 +522,15 @@ export default function CrawlerPage() {
       } else {
         setSelectedGenres([]);
       }
-    } catch { setSelectedGenres([]); }
+    } catch (e: unknown) { setSelectedGenres([]); }
     setEditingId(schedule.id);
     setShowAdvanced(selectedGenres.length > 0);
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) { toast.warning('请输入配置名称'); return; }
+    if (saving) return; // 防抖：防止快速连续点击
     setSaving(true);
     try {
       const submitData: { name: string; contentType: string; sourceSite: string; cronExpression: string; batchSize: number; rateLimitMs: number; priority: string; genreFilter: string; enabled: number; id?: number } = {

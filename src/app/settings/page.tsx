@@ -62,6 +62,7 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       await settingsApi.saveSettings({

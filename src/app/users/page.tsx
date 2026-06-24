@@ -85,7 +85,7 @@ export default function UsersPage() {
         setUsers(data.records);
         setTotal(data.total);
       }
-    } catch (e: unknown) { toast.error('加载用户列表失败'); } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '加载用户列表失败')); } finally {
       setLoading(false);
     }
   }, [page, size, debouncedKeyword]);

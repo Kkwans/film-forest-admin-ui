@@ -78,14 +78,17 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setResolveRef(null);
   }, [dialog, loading, resolveRef]);
 
+  // Enter 确认快捷键（loading 时禁用防止重复提交）
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') handleClose(false);
+    if (e.key === 'Enter' && !loading) handleClose(true);
+  }, [loading, handleClose]);
+
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose(false);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, handleClose]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleKeyDown]);
 
   useEffect(() => {
     if (isOpen) {

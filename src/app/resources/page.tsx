@@ -198,10 +198,10 @@ export default function ResourcesPage() {
       setMagnets(data?.records || []);
       setMagnetTotal(data?.total || 0);
       setMagnetPage(data?.current || page);
-    } catch (e: unknown) { toast.error('磁力资源加载失败'); } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '磁力资源加载失败')); } finally {
       setMagnetLoading(false);
     }
-  }, [toast]);
+  }, [extractErrorMessage]);
 
   // ===== 加载网盘资源 =====
   const fetchClouds = useCallback(async (page: number, filter?: { contentType?: string; keyword?: string }) => {
@@ -216,10 +216,10 @@ export default function ResourcesPage() {
       setClouds(data?.records || []);
       setCloudTotal(data?.total || 0);
       setCloudPage(data?.current || page);
-    } catch (e: unknown) { toast.error('网盘资源加载失败'); } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '网盘资源加载失败')); } finally {
       setCloudLoading(false);
     }
-  }, [toast]);
+  }, [extractErrorMessage]);
 
   const fetchBaseData = async () => {
     try {
@@ -230,7 +230,7 @@ export default function ResourcesPage() {
       ]);
       setStats(statsRes.data?.data || { online: 0, magnet: 0, cloud: 0, todayNew: 0 });
       setSources(sourcesRes.data?.data || []);
-    } catch (e: unknown) { toast.error('数据加载失败'); } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '数据加载失败')); } finally {
       setLoading(false);
     }
   };
@@ -239,8 +239,7 @@ export default function ResourcesPage() {
     fetchBaseData();
     fetchMagnets(1, {});
     fetchClouds(1, {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchBaseData, fetchMagnets, fetchClouds]);
 
   // ===== 磁力资源筛选 =====
   const handleMagnetSearch = () => {

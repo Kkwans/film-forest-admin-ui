@@ -48,7 +48,7 @@ export default function TagsPage() {
       if (res.data?.code === 200) {
         setTags(res.data.data || []);
       }
-    } catch (e: unknown) { toast.error('加载标签失败'); } finally {
+    } catch (e: unknown) { toast.error(extractErrorMessage(e, '加载标签失败')); } finally {
       setLoading(false);
     }
   }, [toast]);
@@ -87,6 +87,7 @@ export default function TagsPage() {
       return;
     }
 
+    if (saving) return;
     setSaving(true);
     try {
       if (editingTag) {

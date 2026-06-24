@@ -300,7 +300,7 @@ export default function ContentPage() {
             setContentTagMap(prev => ({ ...prev, ...map }));
           }
         }
-      } catch {}
+      } catch (e: unknown) { toast.error(extractErrorMessage(e, '加载标签失败')); }
     };
     loadItemTags();
   }, [items, allTags]);
@@ -387,7 +387,7 @@ export default function ContentPage() {
         if (selectedTagIds.length > 0) {
           const newId = res.data.data?.id;
           if (newId) {
-            try { await tagApi.setContentTags(editForm.type, newId, selectedTagIds); } catch {}
+            try { await tagApi.setContentTags(editForm.type, newId, selectedTagIds); } catch (e: unknown) { toast.error(extractErrorMessage(e, '标签关联失败')); }
           }
         }
         setCreatingNew(false);
@@ -459,7 +459,7 @@ export default function ContentPage() {
       });
       if (res?.data?.code === 200 || res?.data?.code === 0) {
         // Save tag associations
-        try { await tagApi.setContentTags(editingItem.type, editingItem.id, selectedTagIds); } catch {}
+        try { await tagApi.setContentTags(editingItem.type, editingItem.id, selectedTagIds); } catch (e: unknown) { toast.error(extractErrorMessage(e, '标签关联失败')); }
         setEditingItem(null);
         setFormErrors({});
         toast.success('已保存');
@@ -491,10 +491,10 @@ export default function ContentPage() {
         setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: item.status } : i));
         toast.error('更新状态失败');
       }
-    } catch {
+    } catch (e: unknown) {
       // Revert optimistic update
       setItems(prev => prev.map(i => (i.id === item.id && i.type === item.type) ? { ...i, status: item.status } : i));
-      toast.error('更新状态失败');
+      toast.error(extractErrorMessage(e, '更新状态失败'));
     } finally {
       setTogglingIds(prev => { const s = new Set(prev); s.delete(key); return s; });
     }
@@ -519,6 +519,7 @@ export default function ContentPage() {
 
   const handleBatchDelete = async () => {
     if (selectedKeys.size === 0) return;
+    if (batchProcessing) return;
     const ok = await dialog.confirm({
       title: '批量删除',
       content: `确定删除选中的 ${selectedKeys.size} 条内容？删除后不可恢复。`,
@@ -541,7 +542,16 @@ export default function ContentPage() {
         short_drama: () => contentApi.deleteShortDrama(e.id),
       }))
     );
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const successCount = results.reduce((acc, r, i) => {
+      if (r.status === 'fulfilled' && (r.value?.data?.code === 200 || r.value?.data?.code === 0)) return acc + 1;
+      return acc;
+    }, 0);
+    // 同步 allItems（typeFilter='all' 时使用客户端数据）
+    if (typeFilter === 'all') {
+      const deleteKeys = new Set(entries.map(e => `${e.type}-${e.id}`));
+      setAllItems(prev => prev.filter(i => !deleteKeys.has(`${i.type}-${i.id}`)));
+    }
+    setTotal(t => Math.max(0, t - successCount));
     toast.success(`成功删除 ${successCount} 条内容`);
     // 清理已删除条目的标签缓存
     setContentTagMap(prev => {
@@ -556,6 +566,7 @@ export default function ContentPage() {
 
   const handleBatchToggleStatus = async (newStatus: number) => {
     if (selectedKeys.size === 0) return;
+    if (batchProcessing) return;
     setBatchProcessing(true);
     const entries = Array.from(selectedKeys)
       .map(key => {
@@ -568,7 +579,15 @@ export default function ContentPage() {
     const results = await Promise.allSettled(
       entries.map(e => contentApi.toggleStatus(e.type, e.id, newStatus))
     );
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const successCount = results.reduce((acc, r) => {
+      if (r.status === 'fulfilled' && (r.value?.data?.code === 200 || r.value?.data?.code === 0)) return acc + 1;
+      return acc;
+    }, 0);
+    // 同步 allItems（typeFilter='all' 时使用客户端数据）
+    if (typeFilter === 'all') {
+      const updateKeys = new Set(entries.map(e => `${e.type}-${e.id}`));
+      setAllItems(prev => prev.map(i => updateKeys.has(`${i.type}-${i.id}`) ? { ...i, status: newStatus } : i));
+    }
     toast.success(`成功${newStatus === 1 ? '上线' : '下线'} ${successCount} 条内容`);
     // 清理已操作条目的标签缓存，确保刷新后标签一致
     setContentTagMap(prev => {

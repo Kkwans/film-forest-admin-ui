@@ -8,6 +8,7 @@ import { logApi, type LogItem } from '@/lib/api';
 import { Select } from '@/components/ui/select';
 import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/ui/toast';
+import { extractErrorMessage } from '@/lib/utils';
 
 interface PageResult<T> {
   records: T[];
@@ -84,8 +85,8 @@ export default function LogsPage() {
         setLogs(data.records);
         setTotal(data.total);
       }
-    } catch (e) {
-      toast.error('加载日志失败');
+    } catch (e: unknown) {
+      toast.error(extractErrorMessage(e, '加载日志失败'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ export default function LogsPage() {
     try {
       const res = await logApi.stats();
       if (res.data?.code === 200) setStats(res.data.data);
-    } catch (e) { /* ignore */ }
+    } catch (e: unknown) { /* ignore */ }
   }, []);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);

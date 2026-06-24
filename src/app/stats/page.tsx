@@ -155,7 +155,7 @@ export default function StatsPage() {
         if (res.data?.code === 200) setReport(res.data.data);
       }).catch((e: unknown) => toast.error(extractErrorMessage(e, '报表数据加载失败')));
     }
-  }, [activeTab, reportDays, report, loading, toast]);
+  }, [activeTab, reportDays, report, loading]);
 
   return (
     <div className="flex flex-col gap-8">
