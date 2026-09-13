@@ -18,6 +18,7 @@ import { InfoHint, TooltipText } from '@/components/ui/tooltip';
 import { useAdaptivePolling } from '@/hooks/useAdaptivePolling';
 import { useCrawlerEvents } from '@/hooks/crawler-events';
 import { extractErrorMessage } from '@/lib/utils';
+import PosterFallback from '@/components/ui/poster-fallback';
 import {
   CrawlerDetailField,
   CRAWLER_PROGRESS_STAGES,
@@ -96,6 +97,43 @@ const jobMetaHelp: Record<string, string> = {
   '条目': '当前检查点对应的来源外部条目编号。',
   '触发': '启动本次 Job 的方式，例如自动调度、手工启动或重试。',
 };
+
+function CrawlerSuccessPoster({
+  url,
+  title,
+  type,
+  year,
+  sequence,
+}: {
+  url?: string | null;
+  title: string;
+  type?: string;
+  year?: number | null;
+  sequence: number;
+}) {
+  const [loadedUrl, setLoadedUrl] = useState('');
+  const [failedUrl, setFailedUrl] = useState('');
+  const canAttempt = Boolean(url) && failedUrl !== url;
+  const loaded = canAttempt && loadedUrl === url;
+
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-muted/45">
+      {!loaded && <PosterFallback title={title} type={type} year={year} />}
+      {canAttempt && (
+        // eslint-disable-next-line @next/next/no-img-element -- 海报来源由爬虫或本地备份提供，域名不固定。
+        <img
+          src={url || undefined}
+          alt={`${title}海报`}
+          className={`relative size-full object-cover object-center transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          loading="lazy"
+          onLoad={() => setLoadedUrl(url || '')}
+          onError={() => setFailedUrl(url || '')}
+        />
+      )}
+      <span className="pointer-events-none absolute left-2 top-2 inline-flex min-w-7 items-center justify-center rounded-full bg-background/42 px-1.5 py-1 font-mono text-[11px] font-semibold leading-none tabular-nums text-primary/90 shadow-sm backdrop-blur-[2px]">{sequence}</span>
+    </div>
+  );
+}
 
 const outcomeLabels: Record<string, string> = {
   COMPLETED: '已完成',
@@ -460,12 +498,13 @@ export function CrawlerJobDetailModal({ jobId, onClose }: Props) {
                 return (
                   <article key={success.id} data-crawler-success-card className={`${crawlerPanelClass} grid items-center gap-4 p-3 sm:min-h-[11rem] sm:grid-cols-[6.33rem_minmax(0,1fr)]`}>
                     <div className="mx-auto flex h-[9.5rem] w-[6.33rem] shrink-0 items-center justify-center self-center overflow-hidden rounded-[1.05rem] bg-muted/20 text-[10px] text-muted-foreground">
-                      {success.posterUrl ? (
-                        <div className="relative h-full w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-muted/45">
-                          <img src={success.posterUrl} alt={`${success.title}海报`} className="block size-full object-cover object-center" />
-                          <span className="pointer-events-none absolute left-2 top-2 inline-flex min-w-7 items-center justify-center rounded-full bg-background/42 px-1.5 py-1 font-mono text-[11px] font-semibold leading-none tabular-nums text-primary/90 shadow-sm backdrop-blur-[2px]">{sequence}</span>
-                        </div>
-                      ) : '无海报'}
+                      <CrawlerSuccessPoster
+                        url={success.posterUrl}
+                        title={success.title}
+                        type={success.contentType}
+                        year={success.year}
+                        sequence={sequence}
+                      />
                     </div>
                     <div className="flex min-w-0 flex-col self-stretch justify-center">
                       <div className="grid min-h-[3.5rem] gap-1.5 border-b border-border/55 pb-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3">

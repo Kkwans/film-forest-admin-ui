@@ -13,7 +13,6 @@ import {
   Edit,
   Eye,
   Film,
-  ImageOff,
   Inbox,
   Loader2,
   Plus,
@@ -45,6 +44,7 @@ import {
   STATUS_LABELS,
   STATUS_OPTIONS,
 } from '@/components/ContentFormFields';
+import PosterFallback from '@/components/ui/poster-fallback';
 
 // ========== 类型分发工具 ==========
 
@@ -70,6 +70,7 @@ interface ContentRecord {
   title: string;
   type: ContentType;
   posterUrl?: string;
+  posterSourceUrl?: string;
   year?: number;
   scoreDouban?: number;
   scoreImdb?: number;
@@ -110,26 +111,25 @@ const TYPE_PRESENTATION: Record<ContentType, { icon: LucideIcon; color: string; 
   short_drama: { icon: Smartphone, color: 'text-rose-700 dark:text-rose-300', background: 'bg-rose-500/10' },
 };
 
-function ContentPoster({ url, title, className }: { url?: string; title: string; className: string }) {
+function ContentPoster({ url, title, type, year, genre, className }: { url?: string; title: string; type?: ContentType; year?: number; genre?: string; className: string }) {
+  const [loadedUrl, setLoadedUrl] = useState('');
   const [failedUrl, setFailedUrl] = useState('');
-  const canShowImage = Boolean(url) && failedUrl !== url;
+  const canAttemptImage = Boolean(url) && failedUrl !== url;
+  const canShowImage = canAttemptImage && loadedUrl === url;
   return (
-    <div className={`overflow-hidden border border-border bg-muted/45 ${className}`}>
-      {canShowImage ? (
+    <div className={`relative overflow-hidden border border-border bg-muted/45 ${className}`}>
+      {!canShowImage && <div className="absolute inset-0"><PosterFallback title={title} type={type} year={year} genre={genre} /></div>}
+      {canAttemptImage ? (
         // eslint-disable-next-line @next/next/no-img-element -- 海报来源由爬虫或管理员配置，域名不固定。
         <img
           src={url}
           alt={`${title}海报`}
-          className="size-full object-cover"
+          className={`relative size-full object-cover transition-opacity duration-300 ${canShowImage ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"
+          onLoad={() => setLoadedUrl(url || '')}
           onError={() => setFailedUrl(url || '')}
         />
-      ) : (
-        <div className="grid size-full place-items-center gap-1 p-2 text-center text-muted-foreground">
-          <ImageOff className="size-5" />
-          <span className="text-[10px] leading-tight">暂无海报</span>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -521,7 +521,7 @@ export default function ContentPage() {
     }
     setEditForm({
       title: fullItem.title || '',
-      posterUrl: fullItem.posterUrl || '',
+      posterUrl: fullItem.posterSourceUrl || fullItem.posterUrl || '',
       year: String(fullItem.year || ''),
       scoreDouban: String(fullItem.scoreDouban || ''),
       scoreImdb: String(fullItem.scoreImdb || ''),
@@ -970,7 +970,7 @@ export default function ContentPage() {
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <ContentPoster url={item.posterUrl} title={item.title} className="h-[60px] w-11 shrink-0 rounded-lg" />
+                          <ContentPoster url={item.posterUrl} title={item.title} type={item.type} year={item.year} genre={item.genre} className="h-[60px] w-11 shrink-0 rounded-lg" />
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground max-w-48 truncate group-hover:text-primary transition-colors">{item.title}</p>
                             <ContentTags item={item} allTags={allTags} contentTagMap={contentTagMap} />
@@ -1062,7 +1062,7 @@ export default function ContentPage() {
                       className="mt-1 size-4 shrink-0 rounded border-border"
                       aria-label={`${isSelected ? '取消选择' : '选择'}《${item.title}》`}
                     />
-                    <ContentPoster url={item.posterUrl} title={item.title} className="h-[66px] w-12 shrink-0 rounded-lg" />
+                    <ContentPoster url={item.posterUrl} title={item.title} type={item.type} year={item.year} genre={item.genre} className="h-[66px] w-12 shrink-0 rounded-lg" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
                       <ContentTags item={item} allTags={allTags} contentTagMap={contentTagMap} />
@@ -1123,7 +1123,7 @@ export default function ContentPage() {
         {detailItem && (
           <div className="space-y-6 py-1">
             <div className="flex flex-col gap-5 sm:flex-row">
-              <ContentPoster url={detailItem.posterUrl} title={detailItem.title} className="aspect-[2/3] w-28 shrink-0 self-center rounded-xl sm:w-32 sm:self-start" />
+              <ContentPoster url={detailItem.posterUrl} title={detailItem.title} type={detailItem.type} year={detailItem.year} genre={detailItem.genre} className="aspect-[2/3] w-28 shrink-0 self-center rounded-xl sm:w-32 sm:self-start" />
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{TYPE_LABELS[detailItem.type]} #{detailItem.id}</p>

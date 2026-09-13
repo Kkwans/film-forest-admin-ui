@@ -1,10 +1,13 @@
 import axios from 'axios';
+import { clearStoredAdminSession, getStoredAdminToken } from '@/lib/auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+// 列表接口包含精确 total、跨表分页或大资源表 count；10 秒在 NAS 冷缓存/并发时过于激进。
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 const client = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: DEFAULT_REQUEST_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -16,14 +19,14 @@ export function adminStreamUrl(path: string) {
 
 const adminClient = axios.create({
   baseURL: ADMIN_BASE,
-  timeout: 10000,
+  timeout: DEFAULT_REQUEST_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 });
 
 // 请求拦截器：自动添加 token
 adminClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = getStoredAdminToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,8 +40,7 @@ adminClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 || (error.response?.data?.code === 500 && error.response?.data?.message?.includes('未登录'))) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearStoredAdminSession();
         window.dispatchEvent(new Event('film-forest:unauthorized'));
       }
     }
@@ -673,6 +675,34 @@ export const contentApi = {
 
   // Genre 列表（爬虫配置用）
   getGenres: (contentType: string) => adminClient.get('/api/content/genres', { params: { contentType } }),
+};
+
+export interface PosterBackupStatus {
+  status: 'IDLE' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ERROR';
+  total: number;
+  pending: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  progressPercent: number;
+  currentContentType: string | null;
+  currentId: number | null;
+  currentTitle: string | null;
+  lastError: string | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  completedAt: string | null;
+  maxRequestsPerWindow: number;
+  rateLimitWindowSeconds: number;
+}
+
+export const posterBackupApi = {
+  /** 获取海报历史本地化任务状态 */
+  getStatus: () => adminClient.get<ApiEnvelope<PosterBackupStatus>>('/api/poster-backup/status'),
+  /** 启动任务或从暂停状态继续 */
+  start: () => adminClient.post<ApiEnvelope<PosterBackupStatus>>('/api/poster-backup/start'),
+  /** 请求在当前图片处理完成后暂停 */
+  pause: () => adminClient.post<ApiEnvelope<PosterBackupStatus>>('/api/poster-backup/pause'),
 };
 
 // 系统设置 API

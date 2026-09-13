@@ -7,6 +7,8 @@ import { settingsApi, userApi } from '@/lib/api';
 import { extractErrorMessage } from '@/lib/utils';
 import { useToast } from '@/components/ui/toast';
 import NotificationDeliverySettings from './components/NotificationDeliverySettings';
+import PosterBackupPanel from './components/PosterBackupPanel';
+import { useAuth } from '@/components/auth-provider';
 
 interface SettingsData {
   site_name: string;
@@ -24,6 +26,7 @@ const defaultSettings: SettingsData = {
 
 export default function SettingsPage() {
   const toast = useToast();
+  const { user } = useAuth();
   const [settings, setSettings] = useState<SettingsData>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,9 +108,6 @@ export default function SettingsPage() {
     }
     setChangingPassword(true);
     try {
-      // Get current user info to find user ID
-      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      const user = userStr ? JSON.parse(userStr) : null;
       if (!user?.id) {
         toast.error('无法获取当前用户信息，请重新登录');
         return;
@@ -198,6 +198,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PosterBackupPanel />
 
       <NotificationDeliverySettings />
 

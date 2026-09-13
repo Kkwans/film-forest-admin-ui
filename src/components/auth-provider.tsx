@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { clearStoredAdminSession, getStoredAdminToken } from '@/lib/auth';
 
 interface User {
   id: number;
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const savedToken = localStorage.getItem('token');
+    const savedToken = getStoredAdminToken();
     if (!savedToken) {
       router.push('/login');
       return;
@@ -49,14 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(data.data);
           setToken(savedToken);
         } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          clearStoredAdminSession();
           router.push('/login');
         }
       })
       .catch(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearStoredAdminSession();
         router.push('/login');
       })
       .finally(() => setLoading(false));
@@ -64,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const refreshUser = async () => {
-      const savedToken = localStorage.getItem('token');
+      const savedToken = getStoredAdminToken();
       if (!savedToken) return;
       try {
         const response = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${savedToken}` } });
@@ -93,8 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearStoredAdminSession();
     setUser(null);
     setToken(null);
     router.push('/login');

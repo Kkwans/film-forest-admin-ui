@@ -1,20 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Activity, ChartNoAxesCombined, Eye, EyeOff, Loader2, ShieldCheck, TreePine } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { extractErrorMessage } from '@/lib/utils';
+import { getStoredAdminToken, storeAdminToken } from '@/lib/auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
 
+const subscribeToStorage = (listener: () => void) => {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('storage', listener);
+  return () => window.removeEventListener('storage', listener);
+};
+const getRememberedLogin = () => typeof window !== 'undefined' && localStorage.getItem('admin_remember_me') === '1';
+const getRememberedUsername = () => typeof window !== 'undefined' ? localStorage.getItem('admin_username') || '' : '';
+
 export default function LoginPage() {
   const router = useRouter();
   const toast = useToast();
-  const [username, setUsername] = useState('');
+  const rememberedLogin = useSyncExternalStore(subscribeToStorage, getRememberedLogin, () => false);
+  const rememberedUsername = useSyncExternalStore(subscribeToStorage, getRememberedUsername, () => '');
+  const [usernameOverride, setUsernameOverride] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMeOverride, setRememberMeOverride] = useState<boolean | null>(null);
+  const username = usernameOverride ?? rememberedUsername;
+  const rememberMe = rememberMeOverride ?? rememberedLogin;
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -23,7 +37,7 @@ export default function LoginPage() {
     let cancelled = false;
 
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
+      const token = getStoredAdminToken();
 
       if (token) {
         try {
@@ -66,14 +80,22 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe }),
       });
 
       const data = await res.json();
 
       if (data.code === 200) {
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
+        storeAdminToken(data.data.token, rememberMe);
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+        if (rememberMe) {
+          localStorage.setItem('admin_username', username);
+          localStorage.setItem('admin_remember_me', '1');
+        } else {
+          localStorage.removeItem('admin_username');
+          localStorage.removeItem('admin_remember_me');
+        }
         toast.success('登录成功');
         router.push('/');
       } else {
@@ -150,7 +172,7 @@ export default function LoginPage() {
               <span className="text-sm font-medium text-foreground">用户名</span>
               <Input
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsernameOverride(e.target.value)}
                 placeholder="请输入用户名"
                 className="h-11"
                 autoComplete="username"
@@ -178,6 +200,18 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMeOverride(event.target.checked)}
+                disabled={loading}
+                className="size-4 rounded border-border accent-primary"
+              />
+              <span>记住登录状态</span>
+              <span className="text-xs text-muted-foreground/75">本机保持 30 天</span>
             </label>
 
             <Button

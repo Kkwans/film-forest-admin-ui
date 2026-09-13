@@ -43,6 +43,7 @@ import {
 } from '@/lib/api';
 import { extractErrorMessage } from '@/lib/utils';
 import { useListPageSize } from '@/hooks/useListPageSize';
+import PosterFallback from '@/components/ui/poster-fallback';
 
 type ResourceKind = 'online' | 'magnet' | 'cloud';
 type ResourceStatus = 'ACTIVE' | 'DISABLED' | 'REMOVED';
@@ -72,6 +73,30 @@ interface BaseResource {
   contentPosterUrl?: string | null;
   contentYear?: number | null;
   contentReleaseDate?: string | null;
+}
+
+function ResourcePoster({ url, title, type, year }: { url?: string | null; title: string; type?: string; year?: number | null }) {
+  const [loadedUrl, setLoadedUrl] = useState('');
+  const [failedUrl, setFailedUrl] = useState('');
+  const canAttempt = Boolean(url) && failedUrl !== url;
+  const loaded = canAttempt && loadedUrl === url;
+
+  return (
+    <div className="relative size-full overflow-hidden rounded-xl">
+      {!loaded && <PosterFallback title={title} type={type} year={year} />}
+      {canAttempt && (
+        // eslint-disable-next-line @next/next/no-img-element -- 海报来源由爬虫或本地备份提供，域名不固定。
+        <img
+          src={url || undefined}
+          alt={`${title}海报`}
+          className={`relative size-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          loading="lazy"
+          onLoad={() => setLoadedUrl(url || '')}
+          onError={() => setFailedUrl(url || '')}
+        />
+      )}
+    </div>
+  );
 }
 
 interface OnlineResource extends BaseResource {
@@ -773,7 +798,12 @@ export default function ResourcesPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-[4rem_minmax(0,1fr)]">
               <div className="flex h-24 w-16 items-center justify-center overflow-hidden rounded-xl bg-muted text-[10px] text-muted-foreground">
-                {detailResource.resource.contentPosterUrl ? <img src={detailResource.resource.contentPosterUrl} alt="" className="h-full w-full object-cover" /> : '无海报'}
+                <ResourcePoster
+                  url={detailResource.resource.contentPosterUrl}
+                  title={detailResource.resource.contentTitle || contentAssociation(detailResource.resource)}
+                  type={detailResource.resource.contentType}
+                  year={detailResource.resource.contentYear}
+                />
               </div>
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-foreground">{contentAssociation(detailResource.resource)}</h3>

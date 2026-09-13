@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { adminStreamUrl, type CrawlerProgressEvent } from '@/lib/api';
+import { getStoredAdminToken } from '@/lib/auth';
 import { parseCrawlerSseFrames } from './crawler-sse';
 
 interface CrawlerEventsOptions {
@@ -42,7 +43,7 @@ export function useCrawlerEvents(
 
     async function connect() {
       if (stopped) return;
-      const token = localStorage.getItem('token');
+      const token = getStoredAdminToken();
       if (!token) {
         setConnected(false);
         scheduleReconnect();
